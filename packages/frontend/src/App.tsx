@@ -1,11 +1,13 @@
 import { useState } from "react";
 
 export default function App() {
+  const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
+
   const [status, setStatus] = useState<string>("");
 
   async function checkHealth() {
     try {
-      const res = await fetch("http://localhost:8080/health");
+      const res = await fetch(API_URL);
       const json = await res.json();
       setStatus(JSON.stringify(json));
     } catch {
