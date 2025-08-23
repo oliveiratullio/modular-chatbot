@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: modular-chatbot-backend
+    env: node
+    region: oregon
+    rootDir: packages/backend
+    plan: free
+    runtime: node
+    buildCommand: >
+      corepack enable &&
+      corepack prepare pnpm@9.9.0 --activate &&
+      cd .. &&
+      pnpm i -w --frozen-lockfile &&
+      pnpm -C packages/shared build &&
+      pnpm -C packages/backend build
+    startCommand: node dist/main.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CORS_ORIGIN
+        value: https://<SEU-APP>.vercel.app
+    healthCheckPath: /health
