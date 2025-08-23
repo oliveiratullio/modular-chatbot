@@ -4,19 +4,21 @@ services:
     env: node
     region: oregon
     rootDir: packages/backend
-    plan: free
     runtime: node
+    plan: free
     buildCommand: >
       corepack enable &&
       corepack prepare pnpm@9.9.0 --activate &&
       cd .. &&
-      pnpm i -w --frozen-lockfile &&
+      pnpm i -w --frozen-lockfile --prod=false &&
       pnpm -C packages/shared build &&
       pnpm -C packages/backend build
     startCommand: node dist/main.js
     envVars:
       - key: NODE_ENV
         value: production
+      - key: HUSKY
+        value: "0"
       - key: CORS_ORIGIN
         value: https://<SEU-APP>.vercel.app
     healthCheckPath: /health
