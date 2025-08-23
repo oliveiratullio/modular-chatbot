@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AppController } from './app.controller.js';
-import { AppService } from './app.service.js';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 describe('AppController', () => {
   let appController: AppController;
@@ -14,7 +14,7 @@ describe('AppController', () => {
     appController = app.get<AppController>(AppController);
   });
 
-  it('should return "Hello World!"', () => {
-    expect(appController.health).toBe({ status: 'ok', version: '0.1.0' });
+  it('should return { status: "ok", version: "0.1.0" }', () => {
+    expect(appController.health()).toEqual({ status: 'ok', version: '0.1.0' });
   });
 });

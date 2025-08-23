@@ -9,7 +9,7 @@
   "moduleResolution": "NodeNext",
   "scripts": {
     "dev": "tsx watch src/main.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "test": "jest --passWithNoTests --config jest.config.js",
