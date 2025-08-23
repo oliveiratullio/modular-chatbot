@@ -1,4 +1,4 @@
-// packages/backend/src/main.ts
+import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
 import {
@@ -6,9 +6,9 @@ import {
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
 import type { FastifyInstance } from 'fastify';
-import fastifyHelmet, { type FastifyHelmetOptions } from '@fastify/helmet';
+import fastifyHelmet from '@fastify/helmet';
 import fastifyCors, { type FastifyCorsOptions } from '@fastify/cors';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, type INestApplication } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -16,21 +16,29 @@ async function bootstrap() {
     new FastifyAdapter({ logger: true }),
   );
 
-  // Pega a instância tipada do Fastify
-  const fastify: FastifyInstance = app.getHttpAdapter().getInstance();
+  // instância Fastify tipada (para registrar plugins)
+  const fastify = app
+    .getHttpAdapter()
+    .getInstance() as unknown as FastifyInstance;
+  await fastify.register(fastifyHelmet);
 
-  // Helmet
-  const helmetOpts: FastifyHelmetOptions = {};
-  await fastify.register(fastifyHelmet, helmetOpts);
-
-  // CORS
-  const corsOpts: FastifyCorsOptions = { origin: true };
+  const corsOpts: FastifyCorsOptions = {
+    origin: process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(',').map((s) => s.trim())
+      : true,
+    methods: ['GET', 'POST', 'OPTIONS'],
+  };
   await fastify.register(fastifyCors, corsOpts);
 
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  // ✅ cast seguro p/ interface do Nest (expõe useGlobalPipes)
+  const nestApp = app as unknown as INestApplication;
+  nestApp.useGlobalPipes(
+    new ValidationPipe({ whitelist: true, transform: true }),
+  );
 
-  await app.listen(8080, '0.0.0.0');
+  const port = Number(process.env.PORT ?? 8080);
+  await app.listen(port, '0.0.0.0');
 
-  console.log('Backend up on http://localhost:8080');
+  console.log(`Backend up on http://localhost:${port}`);
 }
 bootstrap();

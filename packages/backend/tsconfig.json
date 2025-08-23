@@ -1,5 +1,17 @@
-﻿{
+{
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "outDir": "dist" },
-  "include": ["src"]
+  "compilerOptions": {
+    "outDir": "dist",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true
+  },
+  "include": ["src"],
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/main.js"
+  }
 }
