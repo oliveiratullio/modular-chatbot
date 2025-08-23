@@ -1,23 +1,49 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
+  push:
+    branches: [main, master]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build-test:
+  check:
     runs-on: ubuntu-latest
+    env:
+      HUSKY: "0" # não rodar hooks em CI
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20 + pnpm
+        uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: "pnpm"
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - run: pnpm install
-      - run: pnpm lint
-      - run: pnpm test
-      - run: pnpm build
+          cache: pnpm
+
+      - name: Enable Corepack (pnpm)
+        run: corepack enable
+
+      - name: Use workspace pnpm version
+        run: corepack prepare pnpm@9.9.0 --activate
+
+      - name: Install deps (workspace)
+        run: pnpm i -w --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build shared
+        run: pnpm -C packages/shared build
+
+      - name: Build backend
+        run: pnpm -C packages/backend build
+
+      - name: Build frontend
+        run: pnpm -C packages/frontend build
