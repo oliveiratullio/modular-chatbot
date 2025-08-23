@@ -7,7 +7,7 @@ export default function App() {
 
   async function checkHealth() {
     try {
-      const res = await fetch(API_URL);
+      const res = await fetch(`${API_URL}/health`);
       const json = await res.json();
       setStatus(JSON.stringify(json));
     } catch {
