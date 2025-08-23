@@ -14,18 +14,16 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CI: "true"
-      HUSKY: "0" # não rodar hooks em CI
+      HUSKY: "0"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Instala pnpm (evita "Unable to locate executable file: pnpm")
-      - name: Setup pnpm
+      - name: Setup pnpm (follows packageManager)
         uses: pnpm/action-setup@v4
         with:
-          version: 9.9.0
+          run_install: false
 
-      # Node 20 + cache de pnpm (lockfile na raiz do monorepo)
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
