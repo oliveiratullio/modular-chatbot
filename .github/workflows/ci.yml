@@ -13,25 +13,28 @@ jobs:
   check:
     runs-on: ubuntu-latest
     env:
+      CI: "true"
       HUSKY: "0" # não rodar hooks em CI
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node 20 + pnpm
+      # Instala pnpm (evita "Unable to locate executable file: pnpm")
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.9.0
+
+      # Node 20 + cache de pnpm (lockfile na raiz do monorepo)
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
-
-      - name: Enable Corepack (pnpm)
-        run: corepack enable
-
-      - name: Use workspace pnpm version
-        run: corepack prepare pnpm@9.9.0 --activate
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install deps (workspace)
-        run: pnpm i -w --frozen-lockfile
+        run: pnpm install -w --frozen-lockfile
 
       - name: Lint
         run: pnpm lint
