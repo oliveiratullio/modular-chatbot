@@ -7,6 +7,7 @@ services:
     plan: free
     # Usamos o root do repositório para que o pnpm enxergue o pnpm-workspace.yaml
     rootDir: .
+    dockerfilePath: packages/backend/Dockerfile
     runtime: node
     # Se você tem .nvmrc com "20", o Render já respeita.
     buildCommand: >
