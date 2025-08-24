@@ -12,6 +12,7 @@ export class MathAgent {
     const expr = message.replace(/x/gi, '*');
     let result = NaN;
     const start = performance.now();
+
     try {
       if (!/^[\d.\s+\-*/()]+$/.test(expr)) {
         throw new Error('Invalid math expression');
@@ -20,7 +21,12 @@ export class MathAgent {
       result = Function(`"use strict"; return (${expr});`)();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      logger.error({ level: 'ERROR', agent: 'MathAgent', error: msg });
+      logger.error({
+        level: 'ERROR',
+        agent: 'MathAgent',
+        error: msg,
+        processed_content: expr,
+      });
       throw e;
     } finally {
       const ms = performance.now() - start;
@@ -28,7 +34,7 @@ export class MathAgent {
         level: 'INFO',
         agent: 'MathAgent',
         execution_time: ms,
-        expression: expr,
+        processed_content: expr,
       });
     }
 

@@ -5,7 +5,6 @@ export class RouterAgent {
   route(input: string): AgentDecision {
     const looksMathy =
       /[\d.\s+\-*/()x]+/.test(input) && /[+\-*/x]/i.test(input);
-
     const decision: AgentDecision = {
       agent: 'RouterAgent',
       decision: looksMathy ? 'MathAgent' : 'KnowledgeAgent',
@@ -15,6 +14,7 @@ export class RouterAgent {
       level: 'INFO',
       agent: 'RouterAgent',
       decision: decision.decision,
+      processed_content: input.slice(0, 120),
     });
     return decision;
   }

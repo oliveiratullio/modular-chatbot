@@ -7,7 +7,7 @@ import {
 } from '@nestjs/platform-fastify';
 import fastifyHelmet from '@fastify/helmet';
 import fastifyCors from '@fastify/cors';
-import { LoggerInterceptor } from './common/logging/logger.interceptor.js';
+import { RequestContextInterceptor } from './common/telemetry/request-context.interceptor.js';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -16,13 +16,15 @@ async function bootstrap() {
   );
 
   await app.register(fastifyHelmet);
-  // CORS via .env → CORS_ORIGIN=...
   const allowed = process.env.CORS_ORIGIN?.split(',')
     .map((s) => s.trim())
     .filter(Boolean);
-  await app.register(fastifyCors, { origin: allowed?.length ? allowed : true });
 
-  app.useGlobalInterceptors(new LoggerInterceptor());
+  await app.register(fastifyCors, {
+    origin: allowed?.length ? allowed : true,
+  });
+
+  app.useGlobalInterceptors(new RequestContextInterceptor());
 
   const port = Number(process.env.PORT ?? 8080);
   await app.listen(port, '0.0.0.0');

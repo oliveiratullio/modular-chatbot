@@ -9,11 +9,13 @@ export class KnowledgeAgent {
     const start = performance.now();
     const answer = `Stub RAG: buscando em https://ajuda.infinitepay.io/pt-BR/ → "${query}"`;
     const ms = performance.now() - start;
+
     logger.info({
       level: 'INFO',
       agent: 'KnowledgeAgent',
       execution_time: ms,
       source: 'ajuda.infinitepay.io',
+      processed_content: query,
     });
 
     return {
