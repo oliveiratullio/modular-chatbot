@@ -13,7 +13,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "pnpm -r run test",
-    "prepare": "husky"
+    "prepare": "sh -c '[ -z \"$CI\" ] && husky || echo \"skip husky in CI\"'"
   },
   "devDependencies": {
     "@eslint/js": "^9.34.0",
@@ -26,7 +26,6 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^4.6.2",
     "husky": "^9.1.5",
-    "is-ci": "^4.1.0",
     "lint-staged": "^15.2.8",
     "prettier": "^3.3.3",
     "tsx": "^4.19.2",
