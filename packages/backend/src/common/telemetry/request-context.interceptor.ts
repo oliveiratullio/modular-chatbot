@@ -9,6 +9,7 @@ import { correlationStore } from './correlation.store.js';
 import { logger } from '../logging/logger.service.js';
 import { randomUUID } from 'node:crypto';
 import type { FastifyRequest, FastifyReply } from 'fastify';
+import { performance } from 'node:perf_hooks';
 
 type ChatBody = {
   conversation_id?: string;

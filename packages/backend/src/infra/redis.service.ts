@@ -1,30 +1,88 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { createClient, type RedisClientType } from 'redis';
+import { logger } from '../common/logging/logger.service.js';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
-  private client!: RedisClientType;
+  private client?: RedisClientType;
+  private enabled = false;
 
   async onModuleInit() {
-    this.client = createClient({
-      url: process.env.REDIS_URL ?? 'redis://localhost:6379',
-    });
-    this.client.on('error', (err) => console.error('Redis error', err));
-    await this.client.connect();
+    const url = process.env.REDIS_URL;
+    if (!url) {
+      logger.info({
+        level: 'INFO',
+        agent: 'Redis',
+        message: 'REDIS_URL not set → Redis disabled',
+      });
+      return;
+    }
+    try {
+      this.client = createClient({ url });
+      this.client.on('error', (err) =>
+        logger.error({
+          level: 'ERROR',
+          agent: 'Redis',
+          error: String(err?.message),
+        }),
+      );
+      await this.client.connect();
+      this.enabled = true;
+      logger.info({ level: 'INFO', agent: 'Redis', message: 'Connected' });
+    } catch (err) {
+      logger.error({
+        level: 'ERROR',
+        agent: 'Redis',
+        message: 'Failed to connect, continuing without Redis',
+        error: String((err as Error).message),
+      });
+      this.enabled = false;
+    }
   }
 
   async onModuleDestroy() {
-    if (this.client) await this.client.disconnect();
+    if (this.client) await this.client.disconnect().catch(() => void 0);
   }
 
-  // exemplos a usar no passo 3
-  async appendHistory(key: string, value: string) {
-    await this.client.rPush(key, value);
+  private require(): RedisClientType | undefined {
+    return this.enabled && this.client ? this.client : undefined;
   }
 
-  async getHistory(key: string, count = 20) {
-    const len = await this.client.lLen(key);
+  async appendList(key: string, value: string): Promise<void> {
+    const c = this.require();
+    if (!c) return;
+    await c.rPush(key, value);
+  }
+
+  async lrangeTail(key: string, count: number): Promise<string[]> {
+    const c = this.require();
+    if (!c) return [];
+    const len = await c.lLen(key);
     const start = Math.max(0, Number(len) - count);
-    return this.client.lRange(key, start, -1);
+    return c.lRange(key, start, -1);
+  }
+
+  async expire(key: string, seconds: number): Promise<void> {
+    const c = this.require();
+    if (!c) return;
+    await c.expire(key, seconds);
+  }
+
+  async sadd(key: string, member: string): Promise<void> {
+    const c = this.require();
+    if (!c) return;
+    await c.sAdd(key, member);
+  }
+
+  async smembers(key: string): Promise<string[]> {
+    const c = this.require();
+    if (!c) return [];
+    return c.sMembers(key);
+  }
+
+  async del(key: string): Promise<void> {
+    const c = this.require();
+    if (!c) return;
+    await c.del(key);
   }
 }

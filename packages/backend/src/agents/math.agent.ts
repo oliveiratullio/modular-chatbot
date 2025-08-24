@@ -3,6 +3,7 @@ import type {
   AgentResponse,
 } from '../common/types/agent.types.js';
 import { logger } from '../common/logging/logger.service.js';
+import { performance } from 'node:perf_hooks';
 
 export class MathAgent {
   async handle(

@@ -1,23 +1,56 @@
-import { Body, Controller, Post, UseGuards, UsePipes } from '@nestjs/common';
-import { ChatRequestDto } from './chat.dto.js';
+import {
+  Body,
+  Controller,
+  HttpException,
+  HttpStatus,
+  Post,
+} from '@nestjs/common';
+import { z } from 'zod';
 import { ChatService } from './chat.service.js';
-import { InjectionGuard } from '../common/security/injection.guard.js';
-import { ValidationPipe } from '../common/security/validation.pipe.js';
+import type {
+  ChatRequestDTO,
+  ChatResponseDTO,
+} from './../../../shared/src/index.js';
+
+const ChatSchema = z.object({
+  message: z.string().min(1),
+  user_id: z.string().min(1),
+  conversation_id: z.string().min(1),
+});
 
 @Controller()
 export class ChatController {
   constructor(private readonly chat: ChatService) {}
 
-  @Post('chat')
-  @UseGuards(InjectionGuard)
-  @UsePipes(ValidationPipe)
-  async chatbot(@Body() dto: ChatRequestDto) {
-    const result = await this.chat.handle(dto.message);
-    // Formato exatamente como o desafio pede
-    return {
-      response: result.response,
-      source_agent_response: result.source_agent_response,
-      agent_workflow: result.agent_workflow,
-    };
+  @Post('/chat')
+  async chatEndpoint(@Body() body: ChatRequestDTO): Promise<ChatResponseDTO> {
+    const parse = ChatSchema.safeParse(body);
+    if (!parse.success) {
+      throw new HttpException(
+        { error_code: 'INVALID_PAYLOAD' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    try {
+      const { message, user_id, conversation_id } = parse.data;
+
+      // chama o serviço no formato atual (message + meta)
+      const result = await this.chat.handle(message, {
+        userId: user_id,
+        conversationId: conversation_id,
+      });
+
+      return {
+        response: result.response,
+        source_agent_response: result.source_agent_response ?? '',
+        agent_workflow: result.agent_workflow,
+      };
+    } catch {
+      throw new HttpException(
+        { error_code: 'INTERNAL_ERROR' },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }
