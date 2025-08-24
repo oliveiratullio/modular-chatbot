@@ -5,6 +5,7 @@
     "**/*.test.ts",
     "test/**",
     "**/__tests__/**",
+    "src/**/*.e2e-spec.ts",
     "jest.config.*",
     "**/*.md"
   ]
