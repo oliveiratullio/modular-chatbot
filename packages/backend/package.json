@@ -12,7 +12,7 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
-    "test": "jest --passWithNoTests --config jest.config.js",
+    "test": "jest --passWithNoTests --config jest.config.mjs",
     "test:watch": "jest --watch --config jest.config.js",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
