@@ -1,27 +1,11 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "noEmit": false,
     "outDir": "dist",
     "rootDir": "src",
-    "noEmit": false,
-    "types": ["node"],
-    "skipLibCheck": true,
-    "composite": true,
-    "baseUrl": ".",
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "paths": {}
+    "declaration": false
   },
   "include": ["src/**/*.ts"],
-  "exclude": [
-    "**/*.spec.ts",
-    "**/*.test.ts",
-    "test/**",
-    "**/__tests__/**",
-    "src/**/*.e2e-spec.ts",
-    "jest.config.*",
-    "**/*.md",
-    "node_modules",
-    "dist"
-  ]
+  "exclude": ["**/*.spec.ts", "node_modules", "dist"]
 }
