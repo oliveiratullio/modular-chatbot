@@ -5,8 +5,10 @@ import { InjectionGuard } from '../common/security/injection.guard.js';
 import { ChatHistoryRepository } from '../repositories/chat-history.repo.js';
 import { UserConversationsRepository } from '../repositories/user-conversations.repo.js';
 import { AgentLogsRepository } from '../repositories/agent-logs.repo.js';
+import { RedisModule } from '../infra/redis.module.js';
 
 @Module({
+  imports: [RedisModule],
   controllers: [ChatController],
   providers: [
     ChatService,

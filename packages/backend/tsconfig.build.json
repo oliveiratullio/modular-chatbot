@@ -8,6 +8,8 @@
     "skipLibCheck": true,
     "composite": true,
     "baseUrl": ".",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
     "paths": {}
   },
   "include": ["src/**/*.ts"],
@@ -18,6 +20,8 @@
     "**/__tests__/**",
     "src/**/*.e2e-spec.ts",
     "jest.config.*",
-    "**/*.md"
+    "**/*.md",
+    "node_modules",
+    "dist"
   ]
 }
