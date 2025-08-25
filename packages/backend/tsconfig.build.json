@@ -5,7 +5,10 @@
     "rootDir": "src",
     "noEmit": false,
     "types": ["node"],
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "composite": true,
+    "baseUrl": ".",
+    "paths": {}
   },
   "include": ["src/**/*.ts"],
   "exclude": [
