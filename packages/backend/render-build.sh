@@ -9,7 +9,7 @@ pnpm install --frozen-lockfile --prod=false
 pnpm build
 
 # garanta que o artefato existe (falha o build se não existir)
-test -s packages/backend/dist/main.js
+test -s dist/main.js
 
 echo "BUILD OK"
 ls -la dist
