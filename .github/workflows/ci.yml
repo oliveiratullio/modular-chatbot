@@ -34,7 +34,7 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Install deps (workspace)
-        run: pnpm install -w
+        run: pnpm install
 
       - name: Lint
         run: pnpm lint
