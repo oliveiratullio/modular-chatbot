@@ -6,7 +6,11 @@
     "moduleResolution": "NodeNext",
     "types": ["node"],
     "emitDecoratorMetadata": true,
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "baseUrl": "../../",
+    "paths": {
+      "@app/shared": ["packages/shared/src"]
+    }
   },
   "include": ["src"],
   "scripts": {
