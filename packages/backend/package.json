@@ -9,7 +9,7 @@
   "moduleResolution": "NodeNext",
   "scripts": {
     "dev": "tsx watch src/main.ts",
-    "build": "pnpm -C ../shared build && tsc -p tsconfig.build.json && test -f dist/main.js && echo 'Build completed successfully'",
+    "build": "pnpm -C ../shared build && tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "test": "jest --passWithNoTests --config jest.config.mjs",

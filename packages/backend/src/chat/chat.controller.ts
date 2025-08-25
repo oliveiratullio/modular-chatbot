@@ -1,4 +1,7 @@
-import type { ChatRequestDTO, ChatResponseDTO } from '@app/shared';
+import type {
+  ChatRequestDTO,
+  ChatResponseDTO,
+} from './../../../shared/src/index.js';
 
 import {
   Body,

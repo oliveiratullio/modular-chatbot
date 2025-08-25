@@ -5,13 +5,9 @@
     "rootDir": "src",
     "noEmit": false,
     "types": ["node"],
-    "skipLibCheck": true,
-    "baseUrl": ".",
-    "paths": {
-      "@app/shared": ["../shared/src/index.ts"]
-    }
+    "skipLibCheck": true
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*.ts"],
   "exclude": [
     "**/*.spec.ts",
     "**/*.test.ts",
