@@ -1,21 +1,26 @@
+import type { IRouterAgent, AgentDecision, AgentContext } from './contracts.js';
 import { logger } from '../common/logging/logger.service.js';
-import type { AgentDecision } from '../common/types/agent.types.js';
 
-export class RouterAgent {
-  route(input: string): AgentDecision {
-    const looksMathy =
-      /[\d.\s+\-*/()x]+/.test(input) && /[+\-*/x]/i.test(input);
-    const decision: AgentDecision = {
-      agent: 'RouterAgent',
-      decision: looksMathy ? 'MathAgent' : 'KnowledgeAgent',
-      reason: looksMathy ? 'Detected arithmetic symbols' : 'Default to RAG',
-    };
+export class RouterAgent implements IRouterAgent {
+  readonly name = 'RouterAgent' as const;
+
+  async route(message: string, ctx: AgentContext): Promise<AgentDecision> {
+    const trimmed = message.trim();
+
+    const mathLike = /^[\d.\s+\-*/()x]+$/i.test(trimmed);
+    const decision: AgentDecision = mathLike
+      ? { agent: 'MathAgent', reason: 'regex_math_like' }
+      : { agent: 'KnowledgeAgent', reason: 'default_knowledge' };
+
     logger.info({
       level: 'INFO',
       agent: 'RouterAgent',
-      decision: decision.decision,
-      processed_content: input.slice(0, 120),
+      conversation_id: ctx.conversation_id,
+      user_id: ctx.user_id,
+      decision: decision.agent,
+      reason: decision.reason,
     });
+
     return decision;
   }
 }

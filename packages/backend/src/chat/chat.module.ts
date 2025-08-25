@@ -6,6 +6,7 @@ import { ChatHistoryRepository } from '../repositories/chat-history.repo.js';
 import { UserConversationsRepository } from '../repositories/user-conversations.repo.js';
 import { AgentLogsRepository } from '../repositories/agent-logs.repo.js';
 import { RedisModule } from '../infra/redis.module.js';
+import { agentProviders } from '../agents/index.js';
 
 @Module({
   imports: [RedisModule],
@@ -16,6 +17,7 @@ import { RedisModule } from '../infra/redis.module.js';
     ChatHistoryRepository,
     UserConversationsRepository,
     AgentLogsRepository,
+    ...agentProviders,
   ],
   exports: [ChatService],
 })

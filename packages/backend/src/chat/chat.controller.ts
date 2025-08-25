@@ -1,5 +1,3 @@
-import type { ChatRequestDTO, ChatResponseDTO } from '../shared/types.js';
-
 import {
   Body,
   Controller,
@@ -9,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { z } from 'zod';
 import { ChatService } from './chat.service.js';
+import type { ChatRequestDTO, ChatResponseDTO } from '../agents/contracts.js';
 
 const ChatSchema = z.object({
   message: z.string().min(1),
@@ -29,21 +28,8 @@ export class ChatController {
         HttpStatus.BAD_REQUEST,
       );
     }
-
     try {
-      const { message, user_id, conversation_id } = parse.data;
-
-      // chama o serviço no formato atual (message + meta)
-      const result = await this.chat.handle(message, {
-        userId: user_id,
-        conversationId: conversation_id,
-      });
-
-      return {
-        response: result.response,
-        source_agent_response: result.source_agent_response ?? '',
-        agent_workflow: result.agent_workflow,
-      };
+      return await this.chat.handle(parse.data);
     } catch {
       throw new HttpException(
         { error_code: 'INTERNAL_ERROR' },

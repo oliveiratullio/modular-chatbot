@@ -1,17 +1,24 @@
 import type {
-  AgentDecision,
-  AgentResponse,
-} from '../common/types/agent.types.js';
+  IAgent,
+  AgentStep,
+  ChatResponseDTO,
+  AgentContext,
+} from './contracts.js';
 import { logger } from '../common/logging/logger.service.js';
-import { performance } from 'node:perf_hooks';
 
-export class MathAgent {
+export class MathAgent implements IAgent {
+  readonly name = 'MathAgent' as const;
+
+  canHandle(): boolean {
+    return true; // Router já decidiu
+  }
+
   async handle(
     message: string,
-    trail: AgentDecision[],
-  ): Promise<AgentResponse> {
+    ctx: AgentContext,
+    trail: AgentStep[],
+  ): Promise<ChatResponseDTO> {
     const expr = message.replace(/x/gi, '*');
-    let result = NaN;
     const start = performance.now();
 
     try {
@@ -19,30 +26,33 @@ export class MathAgent {
         throw new Error('Invalid math expression');
       }
 
-      result = Function(`"use strict"; return (${expr});`)();
+      const result = Function(`"use strict"; return (${expr});`)();
+
+      const ms = performance.now() - start;
+      logger.info({
+        level: 'INFO',
+        agent: 'MathAgent',
+        conversation_id: ctx.conversation_id,
+        user_id: ctx.user_id,
+        execution_time: ms,
+        expression: expr,
+      });
+
+      return {
+        response: `Result: ${result}`,
+        source_agent_response: `expression=${expr}`,
+        agent_workflow: [...trail, { agent: 'MathAgent' }],
+      };
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       logger.error({
         level: 'ERROR',
         agent: 'MathAgent',
+        conversation_id: ctx.conversation_id,
+        user_id: ctx.user_id,
         error: msg,
-        processed_content: expr,
       });
       throw e;
-    } finally {
-      const ms = performance.now() - start;
-      logger.info({
-        level: 'INFO',
-        agent: 'MathAgent',
-        execution_time: ms,
-        processed_content: expr,
-      });
     }
-
-    return {
-      response: `Result: ${result}`,
-      source_agent_response: `expression=${expr}`,
-      agent_workflow: [...trail, { agent: 'MathAgent' }],
-    };
   }
 }
