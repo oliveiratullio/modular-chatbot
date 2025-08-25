@@ -2,10 +2,19 @@ export type AgentName = 'RouterAgent' | 'KnowledgeAgent' | 'MathAgent';
 
 export type AgentStep = {
   agent: AgentName;
-  decision?: Exclude<AgentName, 'RouterAgent'>;
+  decision?: AgentName;
 };
 
-export type AgentContext = { conversation_id: string; user_id: string };
+export type ChatRequestDTO = {
+  message: string;
+  user_id: string;
+  conversation_id: string;
+};
+
+export type AgentContext = {
+  conversation_id: string;
+  user_id: string;
+};
 
 export type AgentResponse = {
   response: string;
@@ -15,7 +24,7 @@ export type AgentResponse = {
 
 export interface IAgent {
   name: AgentName;
-  canHandle(message: string): boolean;
+  canHandle(message: string, ctx: AgentContext): Promise<boolean>;
   handle(
     message: string,
     ctx: AgentContext,
@@ -23,11 +32,11 @@ export interface IAgent {
   ): Promise<AgentResponse>;
 }
 
-export type RouterDecision = {
-  agent: Exclude<AgentName, 'RouterAgent'>;
-  reason?: string;
+export type IRouterDecision = {
+  agent: AgentName;
 };
 
 export interface IRouterAgent {
-  route(message: string, ctx: AgentContext): Promise<RouterDecision>;
+  route(message: string, ctx: AgentContext): Promise<IRouterDecision>;
 }
+export type ChatResponseDTO = AgentResponse;

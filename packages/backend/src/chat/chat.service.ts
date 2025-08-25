@@ -1,15 +1,14 @@
 import { Injectable, Inject } from '@nestjs/common';
 import type {
-  AgentContext,
+  ChatRequestDTO,
+  ChatResponseDTO as AgentResponse,
   AgentStep,
-  AgentResponse,
+  AgentContext,
   IRouterAgent,
-  RouterDecision,
 } from '../agents/contracts.js';
 import { AGENT_TOKENS } from '../agents/index.js';
 import { MathAgent } from '../agents/math.agent.js';
 import { KnowledgeAgent } from '../agents/knowledge.agent.js';
-import type { ChatRequestDTO } from './chat.dto.js';
 
 @Injectable()
 export class ChatService {
@@ -28,7 +27,7 @@ export class ChatService {
 
     const trail: AgentStep[] = [];
 
-    const decision: RouterDecision = await this.router.route(req.message, ctx);
+    const decision = await this.router.route(req.message, ctx);
     trail.push({ agent: 'RouterAgent', decision: decision.agent });
 
     if (decision.agent === 'MathAgent') {
