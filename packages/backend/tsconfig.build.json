@@ -9,7 +9,8 @@
 
     "baseUrl": "../../",
     "paths": {
-      "@app/shared": ["packages/shared/src"]
+      "@app/shared": ["packages/shared/dist/index.d.ts"],
+      "@app/shared/*": ["packages/shared/dist/*"]
     }
   },
   "include": ["src/**/*.ts"],
