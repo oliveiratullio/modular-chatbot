@@ -19,22 +19,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-
+      # Instala o pnpm no PATH do runner
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9.9.0
           run_install: false
 
-      - name: Enable Corepack
-        run: corepack enable
+      # Node + cache de dependências do pnpm
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
-      - name: Install dependencies
+      - name: Install deps (workspace)
         run: pnpm install -w --no-frozen-lockfile
 
       - name: Lint
