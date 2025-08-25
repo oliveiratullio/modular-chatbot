@@ -1,58 +1,72 @@
+// packages/backend/src/agents/math.agent.ts
 import type {
-  IAgent,
-  AgentStep,
-  ChatResponseDTO,
   AgentContext,
+  AgentResponse,
+  AgentStep,
+  IAgent,
 } from './contracts.js';
 import { logger } from '../common/logging/logger.service.js';
 
 export class MathAgent implements IAgent {
-  readonly name = 'MathAgent' as const;
+  public readonly name = 'MathAgent' as const;
 
-  canHandle(): boolean {
-    return true; // Router já decidiu
+  canHandle(message: string): boolean {
+    // heurística simples: contém dígitos e algum operador comum
+    return /\d/.test(message) && /[+\-*/x^()]/i.test(message);
   }
 
   async handle(
     message: string,
-    ctx: AgentContext,
+    _ctx: AgentContext,
     trail: AgentStep[],
-  ): Promise<ChatResponseDTO> {
-    const expr = message.replace(/x/gi, '*');
+  ): Promise<AgentResponse> {
+    // normalizações: x -> *, ^ -> **, vírgula -> ponto
+    const normalized = message
+      .replace(/x/gi, '*')
+      .replace(/\^/g, '**')
+      .replace(/,/g, '.');
+
+    // validação bem restritiva (apenas números, espaços, ., + - * / ( ) e *)
+    // Observação: ** é permitido implicitamente por permitir '*'
+    const leftover = normalized.replace(/[0-9+\-*/().\s]/g, '');
+    if (leftover !== '') {
+      logger.error({
+        level: 'ERROR',
+        agent: this.name,
+        error: `Invalid characters in expression: ${JSON.stringify(leftover)}`,
+      });
+      throw new Error('Invalid math expression');
+    }
+
     const start = performance.now();
+    let result: unknown;
 
     try {
-      if (!/^[\d.\s+\-*/()]+$/.test(expr)) {
-        throw new Error('Invalid math expression');
+      result = Function(`"use strict"; return (${normalized});`)();
+      if (typeof result !== 'number' || !Number.isFinite(result)) {
+        throw new Error('Computation did not return a finite number');
       }
-
-      const result = Function(`"use strict"; return (${expr});`)();
-
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      logger.error({ level: 'ERROR', agent: this.name, error: msg });
+      throw new Error('MATH_EVAL_FAILED');
+    } finally {
       const ms = performance.now() - start;
       logger.info({
         level: 'INFO',
-        agent: 'MathAgent',
-        conversation_id: ctx.conversation_id,
-        user_id: ctx.user_id,
-        execution_time: ms,
-        expression: expr,
+        agent: this.name,
+        execution_time_ms: ms,
+        expression: normalized,
       });
-
-      return {
-        response: `Result: ${result}`,
-        source_agent_response: `expression=${expr}`,
-        agent_workflow: [...trail, { agent: 'MathAgent' }],
-      };
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
-      logger.error({
-        level: 'ERROR',
-        agent: 'MathAgent',
-        conversation_id: ctx.conversation_id,
-        user_id: ctx.user_id,
-        error: msg,
-      });
-      throw e;
     }
+
+    // mantenha o rastro dos agentes
+    trail.push({ agent: this.name });
+
+    return {
+      response: `Result: ${result as number}`,
+      source_agent_response: `expression=${normalized}`,
+      agent_workflow: trail,
+    };
   }
 }

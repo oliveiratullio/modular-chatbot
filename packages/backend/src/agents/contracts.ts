@@ -1,52 +1,33 @@
 export type AgentName = 'RouterAgent' | 'KnowledgeAgent' | 'MathAgent';
 
-export type AgentDecision = {
-  agent: Exclude<AgentName, 'RouterAgent'>;
-  reason?: string;
+export type AgentStep = {
+  agent: AgentName;
+  decision?: Exclude<AgentName, 'RouterAgent'>;
 };
 
-export type AgentStep = { agent: AgentName; decision?: AgentDecision['agent'] };
+export type AgentContext = { conversation_id: string; user_id: string };
 
-export type ChatRequestDTO = {
-  message: string;
-  user_id: string;
-  conversation_id: string;
-};
-
-export type ChatResponseDTO = {
+export type AgentResponse = {
   response: string;
   source_agent_response: string;
   agent_workflow: AgentStep[];
 };
 
-// Contexto para logs/correlação (entra em todos os handlers)
-export type AgentContext = {
-  conversation_id: string;
-  user_id: string;
-  // espaço para traceId, spanId, etc, se quiser
-  trace_id?: string;
-};
-
-export type AgentOutput = {
-  response: string;
-  source_agent_response?: string;
-  // metadados livres para observabilidade (não expor ao cliente)
-  meta?: Record<string, unknown>;
-};
-
-// Interface que todo Agent deve implementar
 export interface IAgent {
-  readonly name: Exclude<AgentName, 'RouterAgent'>;
-  canHandle(message: string, ctx: AgentContext): Promise<boolean> | boolean; // opcional se usar apenas Router
+  name: AgentName;
+  canHandle(message: string): boolean;
   handle(
     message: string,
     ctx: AgentContext,
     trail: AgentStep[],
-  ): Promise<ChatResponseDTO>;
+  ): Promise<AgentResponse>;
 }
 
-// Interface do roteador
+export type RouterDecision = {
+  agent: Exclude<AgentName, 'RouterAgent'>;
+  reason?: string;
+};
+
 export interface IRouterAgent {
-  readonly name: 'RouterAgent';
-  route(message: string, ctx: AgentContext): Promise<AgentDecision>;
+  route(message: string, ctx: AgentContext): Promise<RouterDecision>;
 }

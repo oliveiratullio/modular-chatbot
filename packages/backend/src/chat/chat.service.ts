@@ -1,15 +1,15 @@
 import { Injectable, Inject } from '@nestjs/common';
 import type {
-  ChatRequestDTO,
-  ChatResponseDTO,
-  AgentStep,
   AgentContext,
-  AgentDecision,
+  AgentStep,
+  AgentResponse,
   IRouterAgent,
+  RouterDecision,
 } from '../agents/contracts.js';
 import { AGENT_TOKENS } from '../agents/index.js';
 import { MathAgent } from '../agents/math.agent.js';
 import { KnowledgeAgent } from '../agents/knowledge.agent.js';
+import type { ChatRequestDTO } from './chat.dto.js';
 
 @Injectable()
 export class ChatService {
@@ -20,7 +20,7 @@ export class ChatService {
     private readonly knowledge: KnowledgeAgent,
   ) {}
 
-  async handle(req: ChatRequestDTO): Promise<ChatResponseDTO> {
+  async handle(req: ChatRequestDTO): Promise<AgentResponse> {
     const ctx: AgentContext = {
       conversation_id: req.conversation_id,
       user_id: req.user_id,
@@ -28,16 +28,12 @@ export class ChatService {
 
     const trail: AgentStep[] = [];
 
-    // router decide
-    const decision: AgentDecision = await this.router.route(req.message, ctx);
-    // registra a decisão do roteador no trail
+    const decision: RouterDecision = await this.router.route(req.message, ctx);
     trail.push({ agent: 'RouterAgent', decision: decision.agent });
 
     if (decision.agent === 'MathAgent') {
       return this.math.handle(req.message, ctx, trail);
     }
-
-    // default: Knowledge
     return this.knowledge.handle(req.message, ctx, trail);
   }
 }

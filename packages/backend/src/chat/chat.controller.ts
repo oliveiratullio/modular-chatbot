@@ -7,7 +7,8 @@ import {
 } from '@nestjs/common';
 import { z } from 'zod';
 import { ChatService } from './chat.service.js';
-import type { ChatRequestDTO, ChatResponseDTO } from '../agents/contracts.js';
+import { ChatRequestDTO } from './chat.dto.js';
+import type { AgentResponse } from '../agents/contracts.js';
 
 const ChatSchema = z.object({
   message: z.string().min(1),
@@ -20,7 +21,7 @@ export class ChatController {
   constructor(private readonly chat: ChatService) {}
 
   @Post('/chat')
-  async chatEndpoint(@Body() body: ChatRequestDTO): Promise<ChatResponseDTO> {
+  async chatEndpoint(@Body() body: ChatRequestDTO): Promise<AgentResponse> {
     const parse = ChatSchema.safeParse(body);
     if (!parse.success) {
       throw new HttpException(
