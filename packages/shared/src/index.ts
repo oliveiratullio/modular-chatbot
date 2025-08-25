@@ -1,4 +1,4 @@
-﻿export type AgentName = "RouterAgent" | "KnowledgeAgent" | "MathAgent";
+export type AgentName = "RouterAgent" | "KnowledgeAgent" | "MathAgent";
 
 export type ChatRequestDTO = {
   message: string;
@@ -6,7 +6,10 @@ export type ChatRequestDTO = {
   conversation_id: string;
 };
 
-export type AgentStep = { agent: AgentName; decision?: "KnowledgeAgent" | "MathAgent" };
+export type AgentStep = {
+  agent: AgentName;
+  decision?: Exclude<AgentName, "RouterAgent">; // "KnowledgeAgent" | "MathAgent"
+};
 
 export type ChatResponseDTO = {
   response: string;

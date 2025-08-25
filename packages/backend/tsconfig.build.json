@@ -2,9 +2,16 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "dist",
+    "rootDir": "src",
     "noEmit": false,
     "types": ["node"],
-    "skipLibCheck": true
+    "skipLibCheck": true,
+
+    "baseUrl": ".", // relativo ao REPO raiz (vem do base)
+    "paths": {
+      "@app/shared": ["../shared/dist/index.d.ts"],
+      "@app/shared/*": ["../shared/dist/*"]
+    }
   },
   "include": ["src/**/*.ts"],
   "exclude": [

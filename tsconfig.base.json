@@ -13,7 +13,8 @@
     "incremental": true,
     "baseUrl": ".",
     "paths": {
-      "@shared/*": ["packages/shared/src/*"]
+      "@app/shared": ["packages/shared/src/index.ts"],
+      "@app/shared/*": ["packages/shared/src/*"]
     }
   }
 }

@@ -1,3 +1,5 @@
+import type { ChatRequestDTO, ChatResponseDTO } from '@app/shared';
+
 import {
   Body,
   Controller,
@@ -7,10 +9,6 @@ import {
 } from '@nestjs/common';
 import { z } from 'zod';
 import { ChatService } from './chat.service.js';
-import type {
-  ChatRequestDTO,
-  ChatResponseDTO,
-} from './../../../shared/src/index.js';
 
 const ChatSchema = z.object({
   message: z.string().min(1),
