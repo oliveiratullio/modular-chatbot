@@ -7,7 +7,7 @@
     "types": ["node"],
     "skipLibCheck": true,
 
-    "baseUrl": ".", // relativo ao REPO raiz (vem do base)
+    "baseUrl": "../../",
     "paths": {
       "@app/shared": ["../shared/dist/index.d.ts"],
       "@app/shared/*": ["../shared/dist/*"]
