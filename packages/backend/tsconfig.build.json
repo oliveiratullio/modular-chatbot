@@ -5,13 +5,7 @@
     "rootDir": "src",
     "noEmit": false,
     "types": ["node"],
-    "skipLibCheck": true,
-
-    "baseUrl": "../../",
-    "paths": {
-      "@app/shared": ["packages/shared/dist/index.d.ts"],
-      "@app/shared/*": ["packages/shared/dist/*"]
-    }
+    "skipLibCheck": true
   },
   "include": ["src/**/*.ts"],
   "exclude": [
@@ -22,5 +16,6 @@
     "src/**/*.e2e-spec.ts",
     "jest.config.*",
     "**/*.md"
-  ]
+  ],
+  "references": [{ "path": "../shared" }]
 }
