@@ -17,6 +17,5 @@ export default {
     },
     moduleNameMapper: {
         '^(\\.{1,2}/.*)\\.js$': '$1',
-        '^@shared/(.*)$': '<rootDir>/../../shared/src/$1',
     },
 };

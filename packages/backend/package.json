@@ -9,7 +9,7 @@
   "moduleResolution": "NodeNext",
   "scripts": {
     "dev": "tsx watch src/main.ts",
-    "build": "pnpm -C ../shared build && tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "test": "jest --passWithNoTests --config jest.config.mjs",
@@ -19,7 +19,6 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
-    "@app/shared": "workspace:*",
     "@fastify/cors": "^10.1.0",
     "@fastify/helmet": "^13.0.1",
     "@nestjs/common": "^11.1.6",

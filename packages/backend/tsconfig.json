@@ -6,12 +6,9 @@
     "moduleResolution": "NodeNext",
     "types": ["node"],
     "emitDecoratorMetadata": true,
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+
+    "baseUrl": "../../"
   },
-  "include": ["src"],
-  "scripts": {
-    "dev": "tsx watch src/main.ts",
-    "build": "tsc -p tsconfig.json",
-    "start": "node dist/main.js"
-  }
+  "include": ["src"]
 }

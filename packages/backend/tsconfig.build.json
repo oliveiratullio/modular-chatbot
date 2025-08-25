@@ -19,6 +19,5 @@
     "src/**/*.e2e-spec.ts",
     "jest.config.*",
     "**/*.md"
-  ],
-  "references": [{ "path": "../shared" }]
+  ]
 }

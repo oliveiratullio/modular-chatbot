@@ -7,7 +7,6 @@
     # copia manifestos suficientes para instalar deps do monorepo
     COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
     COPY packages/backend/package.json packages/backend/
-    COPY packages/shared/package.json packages/shared/
     
     # instala com dev deps (precisamos de typescript p/ build)
     RUN pnpm install -w --frozen-lockfile --prod=false
@@ -17,8 +16,6 @@
     WORKDIR /app
     RUN corepack enable && corepack prepare pnpm@9.9.0 --activate
     COPY . .
-    # constrói shared e backend
-    RUN pnpm -C packages/shared build && pnpm -C packages/backend build
     
     # ---------- runtime ----------
     FROM node:20-alpine AS runner
