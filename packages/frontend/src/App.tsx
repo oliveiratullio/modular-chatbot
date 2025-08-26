@@ -1,26 +1,24 @@
-import { useState } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "sonner";
+import { ChatLayout } from "./components/ChatLayout";
+import { ThemeProvider } from "next-themes";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 export default function App() {
-  const API_URL = import.meta.env.VITE_API_URL;
-
-  const [status, setStatus] = useState<string>("");
-
-  async function checkHealth() {
-    try {
-      const res = await fetch(`${API_URL}/health`);
-      const json = await res.json();
-      setStatus(JSON.stringify(json));
-    } catch {
-      setStatus("Backend not reachable yet.");
-    }
-  }
-
   return (
-    <div style={{ fontFamily: "sans-serif", padding: 24 }}>
-      <h1>Modular Chatbot</h1>
-      <p>Monorepo bootstrap is ready. Click to ping backend health.</p>
-      <button onClick={checkHealth}>Check Backend Health</button>
-      <pre>{status}</pre>
-    </div>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
+        <ChatLayout />
+        <Toaster richColors closeButton position="top-right" />
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }

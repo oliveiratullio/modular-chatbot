@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { createClient, type RedisClientType } from 'redis';
 import type {
   AgentContext,
   AgentStep,
@@ -12,33 +11,26 @@ import { RedisVectorStoreAdapter } from './adapters/vectorstore.adapter.js';
 import CryptoJS from 'crypto-js';
 
 const TOP_K = Number(process.env.RAG_TOP_K ?? 5);
-const CACHE_TTL_SECONDS = 60;
+
+// contrato mínimo para o cliente de cache (evita usar `any`)
+type CacheClient = {
+  get(key: string): Promise<string | null>;
+  setEx(key: string, ttlSeconds: number, value: string): Promise<void>;
+};
 
 @Injectable()
 export class KnowledgeAgent implements IAgent {
   name = 'KnowledgeAgent' as const;
 
-  private readonly emb = new OpenAIEmbeddingsAdapter();
-  private readonly vs = new RedisVectorStoreAdapter(this.emb);
+  private emb = new OpenAIEmbeddingsAdapter();
 
-  // cache opcional via Redis (sem acessar internals do vectorstore)
-  private redisClient?: RedisClientType;
-  private redisReady = false;
-
-  private async ensureRedis(): Promise<void> {
-    if (this.redisReady) return;
-    const url = process.env.REDIS_URL;
-    if (!url) return; // sem redis
-    this.redisClient = createClient({ url });
-    try {
-      await this.redisClient.connect();
-      this.redisReady = true;
-    } catch {
-      this.redisReady = false; // segue sem cache
-    }
-  }
+  // Lazy init do VectorStore
+  private vs?: RedisVectorStoreAdapter;
+  private vsReady = false;
+  private vsInitPromise?: Promise<void>;
 
   async canHandle(_message: string, _ctx: AgentContext): Promise<boolean> {
+    // Router decide; este agente sempre pode lidar
     return true;
   }
 
@@ -51,6 +43,64 @@ export class KnowledgeAgent implements IAgent {
     const hash = CryptoJS.SHA1(norm).toString();
     const ns = process.env.REDIS_NAMESPACE ?? 'rag';
     return `${ns}:cache:q:${hash}`;
+  }
+
+  /** Inicializa o VectorStore apenas quando necessário; tolera ausência de REDIS_URL */
+  private async ensureVectorStore(): Promise<void> {
+    if (this.vsReady) return;
+    if (this.vsInitPromise) return this.vsInitPromise;
+
+    this.vsInitPromise = (async () => {
+      const url = process.env.REDIS_URL;
+      if (!url) {
+        logger.info({
+          level: 'INFO',
+          agent: 'KnowledgeAgent',
+          message: 'REDIS_URL not set → RAG disabled',
+        });
+        this.vsReady = false;
+        return;
+      }
+
+      try {
+        this.vs = new RedisVectorStoreAdapter(this.emb);
+        await this.vs.ensureIndex();
+        this.vsReady = true;
+        logger.info({
+          level: 'INFO',
+          agent: 'KnowledgeAgent',
+          message: 'RAG online (RedisVectorStore ready)',
+        });
+      } catch (e) {
+        logger.error({
+          level: 'ERROR',
+          agent: 'KnowledgeAgent',
+          message: 'Failed to init RedisVectorStore. Running without RAG.',
+          error: (e as Error).message,
+        });
+        this.vsReady = false;
+      }
+    })();
+
+    return this.vsInitPromise;
+  }
+
+  /** Tenta obter um cliente de cache de dentro do VectorStore, de forma segura (sem `any`). */
+  private getCacheClient(): CacheClient | null {
+    // Fazemos um “type narrowing” seguro a partir de `unknown`
+    const maybe = this.vs as unknown as { client?: unknown } | undefined;
+    const cli = maybe?.client as
+      | (CacheClient & Record<string, unknown>)
+      | undefined;
+
+    if (
+      cli &&
+      typeof cli.get === 'function' &&
+      typeof cli.setEx === 'function'
+    ) {
+      return cli;
+    }
+    return null;
   }
 
   private buildAnswer(answer: string, sources: string[]) {
@@ -67,40 +117,58 @@ export class KnowledgeAgent implements IAgent {
   ): Promise<ChatResponseDTO> {
     const t0 = performance.now();
 
-    // garante índice do vector store (cria em primeiro uso)
-    await this.vs.ensureIndex();
+    await this.ensureVectorStore();
 
-    // tenta cache
-    await this.ensureRedis();
-    if (this.redisReady && this.redisClient) {
+    // Cache curto via Redis (se disponível)
+    let cached: { answer: string; sources: string[] } | null = null;
+    const cacheClient = this.getCacheClient();
+    if (this.vsReady && cacheClient) {
       try {
-        const cached = await this.redisClient.get(this.cacheKey(message));
-        if (cached) {
-          const parsed = JSON.parse(cached) as {
-            answer: string;
-            sources: string[];
-          };
-          const resp = this.buildAnswer(parsed.answer, parsed.sources);
-          logger.info({
-            level: 'INFO',
-            agent: 'KnowledgeAgent',
-            cache: 'hit',
-            sources: parsed.sources,
-          });
-          return {
-            response: resp,
-            source_agent_response: parsed.sources.join(' | '),
-            agent_workflow: [...trail, { agent: 'KnowledgeAgent' }],
-          };
-        }
+        const raw = await cacheClient.get(this.cacheKey(message));
+        if (raw)
+          cached = JSON.parse(raw) as { answer: string; sources: string[] };
       } catch {
-        // noop – se falhar cache, segue normal
+        // ignora cache errors
       }
     }
 
-    const lookupStart = performance.now();
-    const chunks = await this.vs.similaritySearch(message, TOP_K);
-    const lookupMs = performance.now() - lookupStart;
+    if (cached) {
+      const resp = this.buildAnswer(cached.answer, cached.sources);
+      logger.info({
+        level: 'INFO',
+        agent: 'KnowledgeAgent',
+        cache: 'hit',
+        sources: cached.sources,
+      });
+      return {
+        response: resp,
+        source_agent_response: cached.sources.join(' | '),
+        agent_workflow: [...trail, { agent: 'KnowledgeAgent' }],
+      };
+    }
+
+    let chunks: Array<{
+      text: string;
+      metadata: Record<string, unknown>;
+      score?: number;
+    }> = [];
+    let searchMs = 0;
+
+    if (this.vsReady && this.vs) {
+      const searchT0 = performance.now();
+      try {
+        chunks = await this.vs.similaritySearch(message, TOP_K);
+      } catch (e) {
+        logger.error({
+          level: 'ERROR',
+          agent: 'KnowledgeAgent',
+          message: 'similaritySearch failed',
+          error: (e as Error).message,
+        });
+        chunks = [];
+      }
+      searchMs = performance.now() - searchT0;
+    }
 
     const sources = Array.from(
       new Set(
@@ -110,10 +178,14 @@ export class KnowledgeAgent implements IAgent {
       ),
     );
 
-    // geração simplificada (sem LLM): sumariza os trechos recuperados
+    // Heurística simples de “resumo”
     let answer: string;
     if (chunks.length === 0) {
-      answer = 'Não tenho certeza com base na base atual.';
+      answer =
+        'Não tenho certeza com base na base atual. ' +
+        (this.vsReady
+          ? ''
+          : 'O módulo de conhecimento está indisponível no momento.');
     } else {
       const summary = chunks
         .map((c) =>
@@ -128,22 +200,22 @@ export class KnowledgeAgent implements IAgent {
       level: 'INFO',
       agent: 'KnowledgeAgent',
       execution_time_ms: fullMs,
-      embedding_lookup_ms: lookupMs,
+      embedding_lookup_ms: searchMs,
       sources,
-      user_id: ctx.user_id,
       conversation_id: ctx.conversation_id,
+      user_id: ctx.user_id,
     });
 
-    // escreve no cache (best-effort)
-    if (this.redisReady && this.redisClient) {
+    // salva cache (se possível)
+    if (this.vsReady && cacheClient) {
       try {
-        await this.redisClient.setEx(
+        await cacheClient.setEx(
           this.cacheKey(message),
-          CACHE_TTL_SECONDS,
+          60,
           JSON.stringify({ answer, sources }),
         );
       } catch {
-        // noop
+        // ignore
       }
     }
 
