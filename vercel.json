@@ -3,11 +3,5 @@
   "installCommand": "corepack enable && corepack prepare pnpm@9.12.3 --activate && pnpm -w install --frozen-lockfile && pnpm -C packages/frontend install --frozen-lockfile",
   "buildCommand": "pnpm -C packages/frontend build",
   "outputDirectory": "packages/frontend/dist",
-  "framework": "vite",
-  "git": {
-    "deploymentEnabled": {
-      "main": true,
-      "master": true
-    }
-  }
+  "framework": "vite"
 }
