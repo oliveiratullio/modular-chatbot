@@ -4,20 +4,29 @@ import { getCorrelation } from '../telemetry/correlation.store.js';
 const baseLogger = pino({
   level: process.env.LOG_LEVEL ?? 'info',
   base: undefined,
-  timestamp: () => `,"timestamp":"${new Date().toISOString()}"`,
+  timestamp: pino.stdTimeFunctions.isoTime,
+  messageKey: 'message',
 });
 
+type LogPayload = Record<string, unknown>;
+
+function withCorrelation(event: LogPayload): LogPayload {
+  // request_id, user_id, conversation_id, etc.
+  const corr = getCorrelation();
+  return { ...corr, ...event };
+}
+
 export const logger = {
-  info(event: Record<string, unknown>) {
-    const corr = getCorrelation();
-    baseLogger.info({ ...corr, ...event });
+  info(event: LogPayload) {
+    baseLogger.info(withCorrelation({ level: 'INFO', ...event }));
   },
-  error(event: Record<string, unknown>) {
-    const corr = getCorrelation();
-    baseLogger.error({ ...corr, ...event });
+  warn(event: LogPayload) {
+    baseLogger.warn(withCorrelation({ level: 'WARN', ...event }));
   },
-  debug(event: Record<string, unknown>) {
-    const corr = getCorrelation();
-    baseLogger.debug({ ...corr, ...event });
+  error(event: LogPayload) {
+    baseLogger.error(withCorrelation({ level: 'ERROR', ...event }));
+  },
+  debug(event: LogPayload) {
+    baseLogger.debug(withCorrelation({ level: 'DEBUG', ...event }));
   },
 };

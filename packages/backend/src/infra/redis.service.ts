@@ -44,9 +44,21 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     if (this.client) await this.client.disconnect().catch(() => void 0);
   }
 
+  /** Exposição de status para /ready e outros checks */
+  get isEnabled(): boolean {
+    return this.enabled;
+  }
+
+  /** Acesso bruto opcional (use com cuidado) */
+  get raw(): RedisClientType | undefined {
+    return this.require();
+  }
+
   private require(): RedisClientType | undefined {
     return this.enabled && this.client ? this.client : undefined;
   }
+
+  // ------------- Helpers usados no projeto -------------
 
   async appendList(key: string, value: string): Promise<void> {
     const c = this.require();
@@ -84,5 +96,19 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     const c = this.require();
     if (!c) return;
     await c.del(key);
+  }
+
+  // ------------- Key/Value utilitários (cache simples) -------------
+
+  async get(key: string): Promise<string | null> {
+    const c = this.require();
+    if (!c) return null;
+    return c.get(key);
+  }
+
+  async setEx(key: string, seconds: number, value: string): Promise<void> {
+    const c = this.require();
+    if (!c) return;
+    await c.setEx(key, seconds, value);
   }
 }
