@@ -1,6 +1,0 @@
-{
-  "version": 2,
-  "buildCommand": "pnpm -C packages/frontend build",
-  "outputDirectory": "packages/frontend/dist",
-  "framework": "vite"
-}
