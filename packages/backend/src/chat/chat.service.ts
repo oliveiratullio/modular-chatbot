@@ -11,6 +11,7 @@ import { KnowledgeAgent } from '../agents/knowledge.agent.js';
 import { ChatHistoryRepository } from '../repositories/chat-history.repo.js';
 import { AgentLogsRepository } from '../repositories/agent-logs.repo.js';
 import { logger } from '../common/logging/logger.service.js';
+import { InjectionGuard } from '../common/security/injection.guard.js';
 
 function sanitizeInput(s: string): string {
   // remove tags e colapsa espaços
@@ -30,6 +31,7 @@ export class ChatService {
     private readonly knowledge: KnowledgeAgent,
     private readonly history: ChatHistoryRepository,
     private readonly agentLogs: AgentLogsRepository,
+    private readonly injection: InjectionGuard,
   ) {}
 
   async handle(req: {
@@ -45,6 +47,7 @@ export class ChatService {
 
     // 1) sanitize
     const clean = sanitizeInput(req.message);
+    this.injection.checkOrThrow(clean);
 
     // 2) persist user message
     await this.history.append(req.conversation_id, {

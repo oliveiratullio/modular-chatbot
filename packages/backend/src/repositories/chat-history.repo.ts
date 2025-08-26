@@ -1,11 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { RedisService } from '../infra/redis.service.js';
+import { AgentStep } from '../agents/contracts.js';
 
 export type ChatMessage = {
-  role: 'user' | 'assistant' | 'system';
+  role: 'user' | 'assistant';
   content: string;
   ts: string;
-  agent?: string;
+  meta?: {
+    workflow?: AgentStep[];
+    source?: string;
+    request_id?: string;
+    [k: string]: unknown;
+  };
 };
 
 function historyKey(conversationId: string) {

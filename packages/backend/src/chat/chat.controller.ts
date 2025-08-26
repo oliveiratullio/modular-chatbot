@@ -9,10 +9,17 @@ import { z } from 'zod';
 import { ChatService } from './chat.service.js';
 import type { ChatResponseDTO } from '../agents/contracts.js';
 
+const MAX_LEN = Number(process.env.MSG_MAX_LEN ?? 1000);
+const SAFE_CHARS = /^[\p{L}\p{N}\p{P}\p{Zs}]+$/u;
+
 const ChatSchema = z.object({
-  message: z.string().min(1),
-  user_id: z.string().min(1),
-  conversation_id: z.string().min(1),
+  message: z
+    .string()
+    .min(1)
+    .max(MAX_LEN)
+    .refine((v) => SAFE_CHARS.test(v), { message: 'INVALID_CHARS' }),
+  user_id: z.string().min(1).max(200),
+  conversation_id: z.string().min(1).max(200),
 });
 
 @Controller()
@@ -28,10 +35,10 @@ export class ChatController {
         HttpStatus.BAD_REQUEST,
       );
     }
-
     try {
       return await this.chat.handle(parsed.data);
     } catch {
+      // nunca vazar stack
       throw new HttpException(
         { error_code: 'INTERNAL_ERROR' },
         HttpStatus.INTERNAL_SERVER_ERROR,

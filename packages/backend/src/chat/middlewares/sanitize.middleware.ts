@@ -1,14 +1,25 @@
-import { stripHtml } from '../../utils/sanitize.js';
-import { FastifyRequest } from 'fastify';
+import { FastifyReply, FastifyRequest } from 'fastify';
+import xss from 'xss';
 
-type ReqWithBody = FastifyRequest & { body?: Record<string, unknown> };
+const MAX_LEN = Number(process.env.MSG_MAX_LEN ?? 1000);
 
-export async function sanitizeMiddleware(req: ReqWithBody): Promise<void> {
-  if (
-    req.method === 'POST' &&
-    req.body &&
-    typeof req.body.message === 'string'
-  ) {
-    req.body.message = stripHtml(req.body.message);
+// remove tags e normaliza espaços
+function clean(s: string) {
+  const noTags = xss(s, {
+    whiteList: {},
+    stripIgnoreTag: true,
+    stripIgnoreTagBody: ['script', 'style'],
+  });
+  return noTags.replace(/\s+/g, ' ').trim().slice(0, MAX_LEN);
+}
+
+export async function sanitizeMiddleware(
+  req: FastifyRequest,
+  _res: FastifyReply,
+) {
+  const b = (req.body as { message?: string }) ?? {};
+  if (b && typeof b.message === 'string') {
+    // @ts-expect-error mutação controlada
+    req.body.message = clean(b.message);
   }
 }

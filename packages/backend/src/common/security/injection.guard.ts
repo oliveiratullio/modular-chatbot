@@ -6,6 +6,13 @@ import {
 } from '@nestjs/common';
 import { basicPromptInjectionGuard } from '../../utils/sanitize.js';
 
+const BLOCK_PATTERNS = [
+  /ignore (all )?(previous|prior) (instructions|messages)/i,
+  /\bact as (system|developer|jailbreak)\b/i,
+  /\byou are (now )?(system prompt|developer mode)\b/i,
+  /\boverride\b.*\brules\b/i,
+];
+
 @Injectable()
 export class InjectionGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
@@ -17,5 +24,15 @@ export class InjectionGuard implements CanActivate {
       );
     }
     return true;
+  }
+
+  checkOrThrow(message: string) {
+    for (const rx of BLOCK_PATTERNS) {
+      if (rx.test(message)) {
+        throw new ForbiddenException({
+          error_code: 'PROMPT_INJECTION_DETECTED',
+        });
+      }
+    }
   }
 }
