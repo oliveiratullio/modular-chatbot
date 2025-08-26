@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "installCommand": "pnpm i --frozen-lockfile",
-  "buildCommand": "pnpm build",
-  "outputDirectory": "dist",
+  "installCommand": "pnpm -w i --frozen-lockfile",
+  "buildCommand": "pnpm -C packages/frontend build",
+  "outputDirectory": "packages/frontend/dist",
   "framework": "vite",
   "git": {
     "deploymentEnabled": {
