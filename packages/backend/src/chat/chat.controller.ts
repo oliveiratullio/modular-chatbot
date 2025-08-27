@@ -30,7 +30,10 @@ export class ChatController {
 
   @Post('/chat')
   async chatEndpoint(@Body() body: unknown): Promise<ChatResponseDTO> {
-    const parsed = ChatSchema.safeParse(body);
+    // Aceita text/plain com JSON string
+    const materialized =
+      typeof body === 'string' ? (JSON.parse(body) as unknown) : body;
+    const parsed = ChatSchema.safeParse(materialized);
     if (!parsed.success) {
       throw new HttpException(
         { error_code: 'INVALID_PAYLOAD' },

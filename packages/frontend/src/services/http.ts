@@ -24,13 +24,21 @@ export async function sleep(ms: number) {
 export async function http<T>(path: string, options: HttpOptions = {}): Promise<T> {
   const url = `${BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 
+  // Simple request para evitar preflight: POST + text/plain
+  const useSimple = (options.method ?? "GET") === "POST";
+
   const res = await fetch(url, {
     method: options.method ?? "GET",
-    headers: {
-      "content-type": "application/json",
-      ...(options.headers ?? {}),
-    },
-    body: options.body ? JSON.stringify(options.body) : undefined,
+    headers: useSimple
+      ? { "content-type": "text/plain", ...(options.headers ?? {}) }
+      : { "content-type": "application/json", ...(options.headers ?? {}) },
+    body: options.body
+      ? useSimple
+        ? typeof options.body === "string"
+          ? options.body
+          : JSON.stringify(options.body)
+        : JSON.stringify(options.body)
+      : undefined,
     signal: options.signal,
   });
 
