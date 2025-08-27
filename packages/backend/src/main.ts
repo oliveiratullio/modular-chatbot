@@ -20,24 +20,8 @@ async function bootstrap() {
 
   await app.register(fastifyHelmet);
 
-  const allowed = (process.env.CORS_ORIGIN ?? '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
   await app.register(fastifyCors, {
-    origin:
-      allowed.length === 0 || allowed.includes('*')
-        ? true
-        : (origin, cb) => {
-            // Sem origin (ex.: curl/Postman) → permite
-            if (!origin) return cb(null, true);
-            try {
-              const isAllowed = allowed.some((o) => o === origin);
-              cb(null, isAllowed);
-            } catch (e) {
-              cb(e as Error, false);
-            }
-          },
+    origin: true, // reflete qualquer Origin (API pública)
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
       'content-type',
@@ -46,7 +30,7 @@ async function bootstrap() {
       'accept',
       'origin',
     ],
-    credentials: true,
+    credentials: false,
   });
 
   await app.register(rateLimit, {
