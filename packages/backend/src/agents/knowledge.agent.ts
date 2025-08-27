@@ -38,8 +38,31 @@ export class KnowledgeAgent implements IAgent {
     return q.trim().toLowerCase().replace(/\s+/g, ' ');
   }
 
+  private normalizeForSearch(q: string) {
+    // remove aspas tipográficas, pontuação forte e acentos
+    const plain = q
+      .replace(/[“”„‟]|[‘’‚‛]/g, '"')
+      .replace(/[¿¡]/g, ' ')
+      .replace(/[!?]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return plain
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // diacríticos
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private tokenizeCore(q: string) {
+    return q
+      .toLowerCase()
+      .replace(/[^a-z0-9áàâãéêíóôõúç\s]/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   private cacheKey(q: string) {
-    const norm = this.normalizeQuery(q);
+    const norm = this.normalizeForSearch(q);
     const hash = CryptoJS.SHA1(norm).toString();
     const ns = process.env.REDIS_NAMESPACE ?? 'rag';
     return `${ns}:cache:q:${hash}`;
@@ -132,7 +155,8 @@ export class KnowledgeAgent implements IAgent {
       }
     }
 
-    if (cached) {
+    // Só retorna de cache se houver fontes; se não, tenta buscar novamente
+    if (cached && cached.sources && cached.sources.length > 0) {
       const resp = this.buildAnswer(cached.answer, cached.sources);
       logger.info({
         level: 'INFO',
@@ -157,7 +181,19 @@ export class KnowledgeAgent implements IAgent {
     if (this.vsReady && this.vs) {
       const searchT0 = performance.now();
       try {
-        chunks = await this.vs.similaritySearch(message, TOP_K);
+        const q1 = this.normalizeForSearch(message);
+        chunks = await this.vs.similaritySearch(q1, TOP_K);
+        if (chunks.length === 0) {
+          // fallback: consulta reduzida a termos principais
+          const q2 = this.tokenizeCore(message)
+            .split(' ')
+            .filter((t) => t.length > 2)
+            .slice(0, 8)
+            .join(' ');
+          if (q2) {
+            chunks = await this.vs.similaritySearch(q2, TOP_K);
+          }
+        }
       } catch (e) {
         logger.error({
           level: 'ERROR',
@@ -168,6 +204,21 @@ export class KnowledgeAgent implements IAgent {
         chunks = [];
       }
       searchMs = performance.now() - searchT0;
+    }
+
+    // log de diagnóstico da busca
+    try {
+      const topScores = (chunks || [])
+        .map((c) => Number((c.score ?? 0).toFixed?.(4) ?? c.score))
+        .slice(0, 5);
+      logger.info({
+        level: 'INFO',
+        agent: 'KnowledgeAgent',
+        search_results: chunks.length,
+        top_scores: topScores,
+      });
+    } catch {
+      // ignore
     }
 
     const sources = Array.from(
@@ -206,8 +257,8 @@ export class KnowledgeAgent implements IAgent {
       user_id: ctx.user_id,
     });
 
-    // salva cache (se possível)
-    if (this.vsReady && cacheClient) {
+    // salva cache (se possível) apenas quando houver fontes
+    if (this.vsReady && cacheClient && sources.length > 0) {
       try {
         await cacheClient.setEx(
           this.cacheKey(message),

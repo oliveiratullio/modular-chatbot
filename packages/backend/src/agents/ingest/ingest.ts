@@ -24,7 +24,8 @@ async function run() {
       if (res.statusCode !== 200) continue;
       const html = await res.body.text();
       const text = htmlToCleanText(html);
-      if (text.length < 200) continue;
+      // Indexa também páginas curtas
+      if (text.length < 50) continue;
 
       const chunks = chunkString(
         text,

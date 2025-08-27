@@ -21,6 +21,9 @@ export class RedisVectorStoreAdapter implements IVectorStoreAdapter {
   private readonly keyPrefix: string;
   private client: RedisClientType;
   private store?: RedisVectorStore;
+  private readonly embedBatchSize: number;
+  private readonly embedMaxRetries: number;
+  private readonly embedBackoffMs: number;
 
   constructor(private readonly emb: IEmbeddingsAdapter) {
     const url = process.env.REDIS_URL;
@@ -35,6 +38,11 @@ export class RedisVectorStoreAdapter implements IVectorStoreAdapter {
 
     // v4: sem modules
     this.client = createClient({ url });
+
+    // Controle de throughput p/ evitar 429 do provedor de embeddings
+    this.embedBatchSize = Number(process.env.RAG_EMBED_BATCH ?? 8);
+    this.embedMaxRetries = Number(process.env.RAG_EMBED_RETRIES ?? 3);
+    this.embedBackoffMs = Number(process.env.RAG_EMBED_BACKOFF_MS ?? 1000);
   }
 
   private async connect(): Promise<void> {
@@ -60,16 +68,22 @@ export class RedisVectorStoreAdapter implements IVectorStoreAdapter {
     points: { id: string; text: string; metadata: Record<string, unknown> }[],
   ): Promise<void> {
     const store = await this.getStore();
-    const texts = points.map((p) => p.text);
-    const vectors = await this.emb.embedDocuments(texts);
 
-    const docs: Document[] = points.map((p) => ({
-      pageContent: p.text,
-      metadata: p.metadata,
-    }));
-    const ids = points.map((p) => p.id);
+    for (let i = 0; i < points.length; i += this.embedBatchSize) {
+      const batch = points.slice(i, i + this.embedBatchSize);
+      const texts = batch.map((p) => p.text);
 
-    await store.addVectors(vectors, docs, { keys: ids });
+      // Retry com backoff exponencial para 429 e erros transitórios
+      const vectors = await this.embedWithRetry(texts);
+
+      const docs: Document[] = batch.map((p) => ({
+        pageContent: p.text,
+        metadata: p.metadata,
+      }));
+      const ids = batch.map((p) => p.id);
+
+      await store.addVectors(vectors, docs, { keys: ids });
+    }
   }
 
   async similaritySearch(
@@ -85,5 +99,20 @@ export class RedisVectorStoreAdapter implements IVectorStoreAdapter {
       metadata: doc.metadata as Record<string, unknown>,
       score,
     }));
+  }
+
+  private async embedWithRetry(texts: string[]) {
+    let attempt = 0;
+
+    while (true) {
+      try {
+        return await this.emb.embedDocuments(texts);
+      } catch (e) {
+        attempt += 1;
+        if (attempt > this.embedMaxRetries) throw e;
+        const delay = this.embedBackoffMs * Math.pow(2, attempt - 1);
+        await new Promise((r) => setTimeout(r, delay));
+      }
+    }
   }
 }
