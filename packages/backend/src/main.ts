@@ -20,10 +20,25 @@ async function bootstrap() {
 
   await app.register(fastifyHelmet);
 
-  const allowed = process.env.CORS_ORIGIN?.split(',')
+  const allowed = (process.env.CORS_ORIGIN ?? '')
+    .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
-  await app.register(fastifyCors, { origin: allowed?.length ? allowed : true });
+  await app.register(fastifyCors, {
+    origin:
+      allowed.length === 0 || allowed.includes('*')
+        ? true
+        : (origin, cb) => {
+            // Sem origin (ex.: curl/Postman) → permite
+            if (!origin) return cb(null, true);
+            try {
+              const isAllowed = allowed.some((o) => o === origin);
+              cb(null, isAllowed);
+            } catch (e) {
+              cb(e as Error, false);
+            }
+          },
+  });
 
   await app.register(rateLimit, {
     max: Number(process.env.RATE_LIMIT_MAX ?? 120), // 120 req/janela
