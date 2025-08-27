@@ -3,6 +3,7 @@ import {
   Controller,
   HttpException,
   HttpStatus,
+  HttpCode,
   Post,
   Inject,
 } from '@nestjs/common';
@@ -29,6 +30,7 @@ export class ChatController {
   constructor(@Inject(ChatService) private readonly chat: ChatService) {}
 
   @Post('/chat')
+  @HttpCode(200)
   async chatEndpoint(@Body() body: unknown): Promise<ChatResponseDTO> {
     // Aceita text/plain com JSON string
     const materialized =
