@@ -29,15 +29,19 @@ export class AllExceptionsFilter implements ExceptionFilter {
       message = exception.message;
     }
 
-    // log estruturado
-    logger.error({
-      level: 'ERROR',
+    // 404 não é erro de aplicação: logar como WARN
+    const logPayload = {
       scope: 'AllExceptionsFilter',
       path: request.url,
       method: request.method,
       status,
       error: message,
-    });
+    } as const;
+    if (status === HttpStatus.NOT_FOUND) {
+      logger.warn({ level: 'WARN', ...logPayload });
+    } else {
+      logger.error({ level: 'ERROR', ...logPayload });
+    }
 
     response.status(status).send({
       statusCode: status,
