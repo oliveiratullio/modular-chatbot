@@ -38,6 +38,15 @@ async function bootstrap() {
               cb(e as Error, false);
             }
           },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'content-type',
+      'authorization',
+      'x-requested-with',
+      'accept',
+      'origin',
+    ],
+    credentials: true,
   });
 
   await app.register(rateLimit, {
