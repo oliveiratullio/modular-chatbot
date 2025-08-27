@@ -16,17 +16,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const request = ctx.getRequest<FastifyRequest>();
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = 'Internal server error';
+    let payload: unknown = { error: 'Internal server error' };
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
-      const res = exception.getResponse();
-      message =
-        typeof res === 'string'
-          ? res
-          : ((res as { message?: string }).message ?? message);
+      payload = exception.getResponse();
     } else if (exception instanceof Error) {
-      message = exception.message;
+      payload = { error: exception.message };
     }
 
     // 404 não é erro de aplicação: logar como WARN
@@ -35,7 +31,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
       path: request.url,
       method: request.method,
       status,
-      error: message,
+      error:
+        typeof payload === 'string'
+          ? payload
+          : ((payload as { error?: string; message?: string })?.error ??
+            (payload as { message?: string })?.message),
     } as const;
     if (status === HttpStatus.NOT_FOUND) {
       logger.warn({ level: 'WARN', ...logPayload });
@@ -43,10 +43,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
       logger.error({ level: 'ERROR', ...logPayload });
     }
 
-    response.status(status).send({
-      statusCode: status,
-      path: request.url,
-      error: message,
-    });
+    response
+      .status(status)
+      .send(
+        typeof payload === 'string'
+          ? { statusCode: status, path: request.url, error: payload }
+          : { statusCode: status, path: request.url, ...(payload as object) },
+      );
   }
 }

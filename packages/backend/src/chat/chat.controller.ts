@@ -4,9 +4,11 @@ import {
   HttpException,
   HttpStatus,
   Post,
+  Inject,
 } from '@nestjs/common';
 import { z } from 'zod';
 import { ChatService } from './chat.service.js';
+
 import type { ChatResponseDTO } from '../agents/contracts.js';
 
 const MAX_LEN = Number(process.env.MSG_MAX_LEN ?? 1000);
@@ -24,7 +26,7 @@ const ChatSchema = z.object({
 
 @Controller()
 export class ChatController {
-  constructor(private readonly chat: ChatService) {}
+  constructor(@Inject(ChatService) private readonly chat: ChatService) {}
 
   @Post('/chat')
   async chatEndpoint(@Body() body: unknown): Promise<ChatResponseDTO> {
@@ -35,14 +37,7 @@ export class ChatController {
         HttpStatus.BAD_REQUEST,
       );
     }
-    try {
-      return await this.chat.handle(parsed.data);
-    } catch {
-      // nunca vazar stack
-      throw new HttpException(
-        { error_code: 'INTERNAL_ERROR' },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+    // Deixe exceções de domínio e HttpExceptions subirem para o filtro global
+    return this.chat.handle(parsed.data);
   }
 }

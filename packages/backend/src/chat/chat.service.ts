@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, ForbiddenException } from '@nestjs/common';
 import { AGENT_TOKENS } from '../agents/index.js';
 import type {
   AgentContext,
@@ -11,7 +11,7 @@ import { KnowledgeAgent } from '../agents/knowledge.agent.js';
 import { ChatHistoryRepository } from '../repositories/chat-history.repo.js';
 import { AgentLogsRepository } from '../repositories/agent-logs.repo.js';
 import { logger } from '../common/logging/logger.service.js';
-import { InjectionGuard } from '../common/security/injection.guard.js';
+import { basicPromptInjectionGuard } from '../utils/sanitize.js';
 
 function sanitizeInput(s: string): string {
   // remove tags e colapsa espaços
@@ -20,6 +20,12 @@ function sanitizeInput(s: string): string {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 4000);
+}
+
+function enforceInjectionPolicy(message: string) {
+  if (basicPromptInjectionGuard(message)) {
+    throw new ForbiddenException({ error_code: 'PROMPT_INJECTION_DETECTED' });
+  }
 }
 
 @Injectable()
@@ -31,7 +37,6 @@ export class ChatService {
     private readonly knowledge: KnowledgeAgent,
     private readonly history: ChatHistoryRepository,
     private readonly agentLogs: AgentLogsRepository,
-    private readonly injection: InjectionGuard,
   ) {}
 
   async handle(req: {
@@ -45,16 +50,24 @@ export class ChatService {
       user_id: req.user_id,
     };
 
-    // 1) sanitize
+    // 1) sanitize + proteção simples de prompt-injection
     const clean = sanitizeInput(req.message);
-    this.injection.checkOrThrow(clean);
+    enforceInjectionPolicy(clean);
 
-    // 2) persist user message
-    await this.history.append(req.conversation_id, {
-      role: 'user',
-      content: clean,
-      ts: new Date().toISOString(),
-    });
+    // 2) persist user message (tolerante à ausência de history repo)
+    if (this.history && typeof this.history.append === 'function') {
+      await this.history.append(req.conversation_id, {
+        role: 'user',
+        content: clean,
+        ts: new Date().toISOString(),
+      });
+    } else {
+      logger.warn({
+        level: 'WARN',
+        scope: 'ChatService',
+        message: 'ChatHistoryRepository not available (skip persist user msg)',
+      });
+    }
 
     // 3) router decide
     const trail: AgentStep[] = [];
@@ -74,21 +87,29 @@ export class ChatService {
       const errMsg = e instanceof Error ? e.message : String(e);
 
       // loga erro
-      try {
-        await this.agentLogs.log({
-          level: 'ERROR',
-          agent: decision.agent,
-          conversation_id: req.conversation_id,
-          user_id: req.user_id,
-          message: 'agent_failed',
-          error: errMsg,
-          extra: { input_len: clean.length },
-        });
-      } catch (logErr) {
-        logger.error({
-          level: 'ERROR',
-          scope: 'agentLogs.log',
-          error: (logErr as Error).message,
+      if (this.agentLogs && typeof this.agentLogs.log === 'function') {
+        try {
+          await this.agentLogs.log({
+            level: 'ERROR',
+            agent: decision.agent,
+            conversation_id: req.conversation_id,
+            user_id: req.user_id,
+            message: 'agent_failed',
+            error: errMsg,
+            extra: { input_len: clean.length },
+          });
+        } catch (logErr) {
+          logger.error({
+            level: 'ERROR',
+            scope: 'agentLogs.log',
+            error: (logErr as Error).message,
+          });
+        }
+      } else {
+        logger.warn({
+          level: 'WARN',
+          scope: 'ChatService',
+          message: 'AgentLogsRepository not available (skip error log)',
         });
       }
 
@@ -104,32 +125,36 @@ export class ChatService {
     // 5) agrega workflow (o agente já devolveu trail acumulado)
     const final = response;
 
-    // 6) persiste resposta no histórico
-    await this.history.append(req.conversation_id, {
-      role: 'assistant',
-      content: final.response,
-      ts: new Date().toISOString(),
-    });
+    // 6) persiste resposta no histórico (tolerante)
+    if (this.history && typeof this.history.append === 'function') {
+      await this.history.append(req.conversation_id, {
+        role: 'assistant',
+        content: final.response,
+        ts: new Date().toISOString(),
+      });
+    }
 
     // 7) log de sucesso
-    try {
-      await this.agentLogs.log({
-        agent: decision.agent,
-        level: 'INFO',
-        conversation_id: req.conversation_id,
-        user_id: req.user_id,
-        workflow: final.agent_workflow,
-        source: final.source_agent_response,
-        duration_ms: agentMs,
-        created_at: Date.now(),
-        message: 'agent_success',
-      });
-    } catch (e) {
-      logger.error({
-        level: 'ERROR',
-        scope: 'agentLogs.log',
-        error: (e as Error).message,
-      });
+    if (this.agentLogs && typeof this.agentLogs.log === 'function') {
+      try {
+        await this.agentLogs.log({
+          agent: decision.agent,
+          level: 'INFO',
+          conversation_id: req.conversation_id,
+          user_id: req.user_id,
+          workflow: final.agent_workflow,
+          source: final.source_agent_response,
+          duration_ms: agentMs,
+          created_at: Date.now(),
+          message: 'agent_success',
+        });
+      } catch (e) {
+        logger.error({
+          level: 'ERROR',
+          scope: 'agentLogs.log',
+          error: (e as Error).message,
+        });
+      }
     }
 
     // 8) retorno
