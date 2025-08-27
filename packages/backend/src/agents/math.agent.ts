@@ -8,6 +8,20 @@ import { logger } from '../common/logging/logger.service.js';
 import { Injectable } from '@nestjs/common';
 
 const MATH_CHARS = /^[0-9.+*/()xX^ -]+$/;
+const HAS_DIGIT = /\d/;
+const HAS_OP = /[+\-*/^x]/i;
+
+function extractExpression(message: string): string | null {
+  // Mantém apenas caracteres matemáticos básicos
+  const filtered = message
+    .replace(/[^0-9.+*/()xX^ -]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!filtered) return null;
+  // Verifica se há ao menos um dígito e um operador
+  if (!HAS_DIGIT.test(filtered) || !HAS_OP.test(filtered)) return null;
+  return filtered;
+}
 
 @Injectable()
 export class MathAgent implements IAgent {
@@ -15,8 +29,8 @@ export class MathAgent implements IAgent {
 
   // assíncrono para compat com interface
   async canHandle(message: string, _ctx: AgentContext): Promise<boolean> {
-    const expr = message.replace(/x/gi, '*').replace(/\^/g, '**');
-    return MATH_CHARS.test(expr);
+    // Detecta presença de dígitos e operador em qualquer lugar do texto
+    return HAS_DIGIT.test(message) && HAS_OP.test(message);
   }
 
   async handle(
@@ -24,12 +38,16 @@ export class MathAgent implements IAgent {
     _ctx: AgentContext,
     trail: AgentStep[],
   ): Promise<AgentResponse> {
-    const expr = message.replace(/x/gi, '*').replace(/\^/g, '**');
+    const raw = extractExpression(message);
+    const expr = (raw ?? message).replace(/x/gi, '*').replace(/\^/g, '**');
     const start = performance.now();
     let result = NaN;
 
     try {
-      if (!MATH_CHARS.test(expr)) {
+      if (
+        !MATH_CHARS.test(expr) ||
+        !(HAS_DIGIT.test(expr) && HAS_OP.test(expr))
+      ) {
         throw new Error('Invalid math expression');
       }
       // Avaliação controlada (sem acesso a escopo)
