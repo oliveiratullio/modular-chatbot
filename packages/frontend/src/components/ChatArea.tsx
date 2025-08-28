@@ -83,10 +83,10 @@ export function ChatArea({
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full">
+    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden">
       {/* Header - apenas no desktop, no mobile é tratado pelo MobileHeader */}
       {!isMobile && (
-        <div className="p-4 border-b bg-card">
+        <div className="p-4 border-b bg-card shrink-0">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-medium">{conversation.title}</h2>
@@ -114,7 +114,7 @@ export function ChatArea({
       )}
 
       {/* Messages */}
-      <ScrollArea ref={scrollAreaRef} className={`flex-1 ${isMobile ? "p-3" : "p-4"}`}>
+      <ScrollArea ref={scrollAreaRef} className={`flex-1 min-h-0 ${isMobile ? "p-3" : "p-4"}`}>
         <div className="space-y-1">
           {conversation.messages.length === 0 && (
             <div className={`text-center ${isMobile ? "py-6" : "py-8"}`}>
@@ -166,7 +166,9 @@ export function ChatArea({
       </ScrollArea>
 
       {/* Message Input */}
-      <MessageInput onSendMessage={onSendMessage} disabled={isLoading} isMobile={isMobile} />
+      <div className="shrink-0">
+        <MessageInput onSendMessage={onSendMessage} disabled={isLoading} isMobile={isMobile} />
+      </div>
     </div>
   );
 }

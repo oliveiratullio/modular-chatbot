@@ -37,7 +37,7 @@ export function ConversationList({
 
   const containerClasses = isMobile
     ? "w-full h-full flex flex-col bg-background"
-    : "w-80 border-r bg-card flex flex-col h-full";
+    : "w-80 border-r bg-card flex flex-col h-full overflow-hidden";
 
   return (
     <div className={containerClasses}>

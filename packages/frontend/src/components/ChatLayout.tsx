@@ -138,18 +138,20 @@ export function ChatLayout() {
 
   if (!isMobile) {
     return (
-      <div className="h-screen flex bg-background">
+      <div className="h-screen flex bg-background overflow-hidden">
         <ConversationList
           conversations={conversations}
           activeConversationId={activeConversationId}
           onSelectConversation={handleSelectConversation}
           onNewConversation={handleNewConversation}
         />
-        <ChatArea
-          conversation={activeConversation || null}
-          onSendMessage={handleSendMessage}
-          isLoading={isLoading}
-        />
+        <div className="flex-1 overflow-hidden">
+          <ChatArea
+            conversation={activeConversation || null}
+            onSendMessage={handleSendMessage}
+            isLoading={isLoading}
+          />
+        </div>
       </div>
     );
   }
