@@ -6,11 +6,18 @@ import {
 } from '@nestjs/common';
 import { basicPromptInjectionGuard } from '../../utils/sanitize.js';
 
+const SP = '[\\s\\t\\n]+'; // espaços flexíveis
 const BLOCK_PATTERNS = [
-  /ignore (all )?(previous|prior) (instructions|messages)/i,
-  /\bact as (system|developer|jailbreak)\b/i,
-  /\byou are (now )?(system prompt|developer mode)\b/i,
-  /\boverride\b.*\brules\b/i,
+  new RegExp(
+    `ignore${SP}(all${SP})?(previous|prior)${SP}(instructions|messages)`,
+    'i',
+  ),
+  new RegExp(`\\bact${SP}as${SP}(system|developer|jailbreak)\\b`, 'i'),
+  new RegExp(
+    `\\byou${SP}are${SP}(now${SP})?(system${SP}prompt|developer${SP}mode)\\b`,
+    'i',
+  ),
+  new RegExp(`\\boverride\\b(?:${SP}.*)?\\brules\\b`, 'i'),
 ];
 
 @Injectable()

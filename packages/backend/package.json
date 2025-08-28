@@ -15,11 +15,12 @@
     "ingest": "tsx src/agents/ingest/ingest.ts",
     "ingest:local": "cross-env REDIS_URL=redis://localhost:6379 REDIS_NAMESPACE=rag tsx src/agents/ingest/ingest.ts",
     "lint": "eslint \"src/**/*.ts\"",
-    "test": "echo \"(backend) no tests yet\"",
+    "test": "jest --config jest.config.js",
+    "test:unit": "jest --config jest.config.js --testPathIgnorePatterns=e2e",
+    "test:e2e": "jest --config ./test/jest-e2e.json",
     "test:watch": "jest --watch --config jest.config.js",
-    "test:cov": "jest --coverage",
-    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:cov": "jest --config jest.config.js --coverage",
+    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --config jest.config.js --runInBand"
   },
   "dependencies": {
     "@fastify/cors": "^10.1.0",

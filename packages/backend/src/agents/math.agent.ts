@@ -9,7 +9,9 @@ import { Injectable } from '@nestjs/common';
 
 const MATH_CHARS = /^[0-9.+*/()xX^ -]+$/;
 const HAS_DIGIT = /\d/;
-const HAS_OP = /[+\-*/^x]/i;
+// Operadores válidos: + - * / ^ e x somente entre dígitos
+const HAS_OP = /[+\-*/^]/i;
+const HAS_X_BETWEEN_DIGITS = /\d\s*[xX]\s*\d/;
 
 function extractExpression(message: string): string | null {
   // Mantém apenas caracteres matemáticos básicos
@@ -18,8 +20,12 @@ function extractExpression(message: string): string | null {
     .replace(/\s+/g, ' ')
     .trim();
   if (!filtered) return null;
-  // Verifica se há ao menos um dígito e um operador
-  if (!HAS_DIGIT.test(filtered) || !HAS_OP.test(filtered)) return null;
+  // Verifica se há ao menos um dígito e um operador válido
+  if (
+    !HAS_DIGIT.test(filtered) ||
+    !(HAS_OP.test(filtered) || HAS_X_BETWEEN_DIGITS.test(filtered))
+  )
+    return null;
   return filtered;
 }
 
@@ -39,19 +45,26 @@ export class MathAgent implements IAgent {
     trail: AgentStep[],
   ): Promise<AgentResponse> {
     const raw = extractExpression(message);
-    const expr = (raw ?? message).replace(/x/gi, '*').replace(/\^/g, '**');
+    // Normaliza: somente converte 'x' para '*' quando está entre dígitos
+    const expr = (raw ?? message)
+      .replace(/(\d)\s*[xX]\s*(\d)/g, '$1*$2')
+      .replace(/\^/g, '**');
     const start = performance.now();
     let result = NaN;
 
     try {
       if (
         !MATH_CHARS.test(expr) ||
-        !(HAS_DIGIT.test(expr) && HAS_OP.test(expr))
+        !HAS_DIGIT.test(expr) ||
+        !(HAS_OP.test(expr) || HAS_X_BETWEEN_DIGITS.test(expr))
       ) {
         throw new Error('Invalid math expression');
       }
+      // checagens simples
+      if (/\/\s*0(?![\d.])/.test(expr)) {
+        throw new Error('Invalid math expression');
+      }
       // Avaliação controlada (sem acesso a escopo)
-
       result = Function(`"use strict"; return (${expr});`)();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);

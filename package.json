@@ -13,6 +13,10 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "pnpm -r run test",
+    "test:unit": "pnpm --filter @app/backend run test:unit && pnpm --filter @app/frontend run test:run",
+    "test:e2e": "pnpm --filter @app/backend run test:e2e",
+    "test:coverage": "pnpm --filter @app/backend run test:cov && pnpm --filter @app/frontend run coverage",
+    "test:all": "pnpm run test:unit && pnpm run test:e2e",
     "prepare": "sh -c '[ -z \"$CI\" ] && husky || echo \"skip husky in CI\"'"
   },
   "devDependencies": {
