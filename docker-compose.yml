@@ -1,7 +1,79 @@
-version: "3.9"
 services:
+  # Redis
   redis:
     image: redis:7-alpine
+    container_name: modular-chatbot-redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
-    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - chatbot-network
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: packages/backend/Dockerfile
+    container_name: modular-chatbot-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file:
+      - packages/backend/.env
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - chatbot-network
+
+  # Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: packages/frontend/Dockerfile
+    container_name: modular-chatbot-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    env_file:
+      - packages/frontend/.env
+    environment:
+      - NODE_ENV=production
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8080}
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5173/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - chatbot-network
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  chatbot-network:
+    driver: bridge
