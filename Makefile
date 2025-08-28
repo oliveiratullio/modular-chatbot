@@ -39,3 +39,19 @@ docker-dev:
 # Production with Docker
 docker-prod:
 	docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+# Kubernetes commands
+k8s-deploy:
+	cd infra/k8s && ./deploy.sh
+
+k8s-build-images:
+	cd infra/k8s && ./build-images.sh
+
+k8s-status:
+	kubectl get pods,svc,ing -n app
+
+k8s-logs:
+	kubectl logs -f deployment/backend -n app
+
+k8s-clean:
+	kubectl delete namespace app

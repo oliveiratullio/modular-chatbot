@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: app
+  labels:
+    app: modular-chatbot
+data:
+  # Backend Configuration
+  NODE_ENV: "production"
+  PORT: "8080"
+  REDIS_NAMESPACE: "rag"
+  RATE_LIMIT_MAX: "120"
+  RATE_LIMIT_WINDOW: "1 minute"
+  RATE_LIMIT_ALLOWLIST: ""
+
+  # Frontend Configuration
+  VITE_API_URL: "http://backend-service:8080"
+
+  # Redis Configuration
+  REDIS_URL: "redis://redis-service:6379"

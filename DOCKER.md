@@ -35,25 +35,6 @@ OPENAI_API_KEY=your_actual_openai_api_key_here
 
 ## Comandos Disponíveis
 
-### Usando Make (recomendado)
-
-```bash
-# Subir todos os serviços
-make docker-up
-
-# Parar todos os serviços
-make docker-down
-
-# Rebuild das imagens
-make docker-build
-
-# Ver logs
-make docker-logs
-
-# Limpar tudo (volumes, containers, imagens)
-make docker-clean
-```
-
 ### Usando Docker Compose diretamente
 
 ```bash

@@ -1,28 +1,44 @@
 # render.yaml — Modular Chatbot (Backend)
 services:
+  # Backend Service
   - type: web
     name: modular-chatbot-backend
     env: node
-    region: oregon
     plan: free
-    # Usamos o root do repositório para que o pnpm enxergue o pnpm-workspace.yaml
-    rootDir: .
-    dockerfilePath: packages/backend/Dockerfile
-    runtime: node
-    # Se você tem .nvmrc com "20", o Render já respeita.
-    buildCommand: >
-      corepack enable &&
-      corepack prepare pnpm@9.9.0 --activate &&
-      pnpm i -w --frozen-lockfile --prod=false &&
-      pnpm -C packages/backend build
-    startCommand: node packages/backend/dist/main.js
+    buildCommand: cd packages/backend && npm install && npm run build
+    startCommand: cd packages/backend && npm start
     envVars:
       - key: NODE_ENV
         value: production
-      # Evita rodar husky no build
-      - key: HUSKY
-        value: "0"
-      # Liberar CORS só para o domínio do frontend (ajuste após deploy da Vercel)
-      - key: CORS_ORIGIN
-        value: https://SEU-APP.vercel.app
+      - key: PORT
+        value: 8080
+      - key: REDIS_NAMESPACE
+        value: rag
+      - key: RATE_LIMIT_MAX
+        value: 120
+      - key: RATE_LIMIT_WINDOW
+        value: 60000
+      - key: RATE_LIMIT_ALLOWLIST
+        value: ""
+      - key: OPENAI_API_KEY
+        sync: false # Configurar manualmente no dashboard
+      - key: REDIS_URL
+        sync: false # Configurar manualmente no dashboard
     healthCheckPath: /health
+    autoDeploy: true
+
+  # Frontend Service
+  - type: web
+    name: modular-chatbot-frontend
+    env: static
+    plan: free
+    buildCommand: cd packages/frontend && npm install && npm run build
+    staticPublishPath: packages/frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://modular-chatbot-backend.onrender.com
+    autoDeploy: true
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://modular-chatbot-backend.onrender.com/api/*
