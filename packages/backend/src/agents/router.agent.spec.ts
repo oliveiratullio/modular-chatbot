@@ -13,8 +13,8 @@ describe('RouterAgent', () => {
     };
   });
 
-  describe('MathAgent routing (casos claros)', () => {
-    it('deve rotear expressões matemáticas simples para MathAgent', async () => {
+  describe('MathAgent routing (clear cases)', () => {
+    it('should route simple mathematical expressions to MathAgent when basic math operations are provided', async () => {
       const testCases = [
         '2 + 3',
         '10 - 5',
@@ -33,7 +33,7 @@ describe('RouterAgent', () => {
       }
     });
 
-    it('deve rotear expressões com múltiplos operadores para MathAgent', async () => {
+    it('should route expressions with multiple operators to MathAgent when complex math operations are provided', async () => {
       const testCases = [
         '2 + 3 * 4',
         '(10 + 5) / 3',
@@ -48,7 +48,7 @@ describe('RouterAgent', () => {
       }
     });
 
-    it('deve rotear expressões com decimais para MathAgent', async () => {
+    it('should route expressions with decimals to MathAgent when decimal numbers are provided', async () => {
       const testCases = [
         '2.5 + 1.7',
         '10.99 * 2',
@@ -63,8 +63,8 @@ describe('RouterAgent', () => {
     });
   });
 
-  describe('KnowledgeAgent routing (casos claros)', () => {
-    it('deve rotear perguntas sobre produtos/serviços para KnowledgeAgent', async () => {
+  describe('KnowledgeAgent routing (clear cases)', () => {
+    it('should route questions about products/services to KnowledgeAgent when knowledge queries are provided', async () => {
       const testCases = [
         'Qual a taxa da maquininha?',
         'Como funciona o Pix?',
@@ -80,7 +80,7 @@ describe('RouterAgent', () => {
       }
     });
 
-    it('deve rotear textos sem números nem operadores para KnowledgeAgent', async () => {
+    it('should route texts without numbers or operators to KnowledgeAgent when non-math queries are provided', async () => {
       const testCases = [
         'Olá, como posso ajudar?',
         'Preciso de suporte',
@@ -96,8 +96,8 @@ describe('RouterAgent', () => {
     });
   });
 
-  describe('Casos ambíguos e edge cases', () => {
-    it('deve rotear mensagens com operadores mas sem números para KnowledgeAgent', async () => {
+  describe('Ambiguous cases and edge cases', () => {
+    it('should route messages with operators but no numbers to KnowledgeAgent when ambiguous input is provided', async () => {
       const testCases = [
         'Qual o diferencial da empresa?',
         'Como é o processo de contratação?',
@@ -114,7 +114,7 @@ describe('RouterAgent', () => {
       }
     });
 
-    it('deve lidar com strings vazias e whitespace', async () => {
+    it('should handle empty strings and whitespace when input is empty or contains only spaces', async () => {
       const testCases = ['', '   ', '\n\t', '   \n   '];
 
       for (const message of testCases) {
@@ -123,7 +123,7 @@ describe('RouterAgent', () => {
       }
     });
 
-    it('deve lidar com caracteres especiais e emojis', async () => {
+    it('should handle special characters and emojis when input contains unicode characters', async () => {
       const testCases = [
         '🤔 Como funciona?',
         '💰 Quanto custa?',
@@ -146,7 +146,7 @@ describe('RouterAgent', () => {
       }
     });
 
-    it('deve rotear mensagens com operadores matemáticos em contextos não-matemáticos', async () => {
+    it('should route messages with mathematical operators in non-mathematical contexts when operators are used symbolically', async () => {
       const testCases = [
         'O que é C++?',
         'Como usar CTRL+C?',
@@ -161,7 +161,7 @@ describe('RouterAgent', () => {
       }
     });
 
-    it('deve ser case-insensitive para operador x', async () => {
+    it('should be case-insensitive for operator x when different cases are used', async () => {
       const testCases = [
         '2 x 3',
         '2 X 3',
@@ -178,14 +178,14 @@ describe('RouterAgent', () => {
     });
   });
 
-  describe('Performance e robustez', () => {
-    it('deve lidar com mensagens muito longas', async () => {
+  describe('Performance and robustness', () => {
+    it('should handle very long messages when input exceeds normal length', async () => {
       const longMessage = 'A'.repeat(10000) + ' 2 + 3 ' + 'B'.repeat(10000);
       const result = await routerAgent.route(longMessage, mockContext);
       expect(result).toEqual({ agent: 'MathAgent' });
     });
 
-    it('deve ser rápido para centenas de mensagens', async () => {
+    it('should be fast for hundreds of messages when processing large batches', async () => {
       const start = Date.now();
       const promises = [];
 
@@ -201,7 +201,7 @@ describe('RouterAgent', () => {
       expect(elapsed).toBeLessThan(100);
     });
 
-    it('deve manter contexto imutável', async () => {
+    it('should maintain immutable context when multiple operations are performed', async () => {
       const originalContext = { ...mockContext };
       await routerAgent.route('2 + 3', mockContext);
       expect(mockContext).toEqual(originalContext);

@@ -26,7 +26,7 @@ describe('MathAgent', () => {
   });
 
   describe('canHandle', () => {
-    it('deve rejeitar mensagens sem números ou operadores', async () => {
+    it('should reject messages without numbers or operators when non-math input is provided', async () => {
       const invalidExpressions = [
         'Como funciona a calculadora?',
         'Preciso de ajuda',
@@ -45,8 +45,8 @@ describe('MathAgent', () => {
     });
   });
 
-  describe('handle - Expressões válidas', () => {
-    it('deve calcular operações básicas corretamente', async () => {
+  describe('handle - Valid expressions', () => {
+    it('should calculate basic operations correctly when valid math expressions are provided', async () => {
       const testCases = [
         { input: '2 + 3', expected: 5 },
         { input: '10 - 4', expected: 6 },
@@ -67,7 +67,7 @@ describe('MathAgent', () => {
       }
     });
 
-    it('deve calcular expressões com decimais corretamente', async () => {
+    it('should calculate expressions with decimals correctly when decimal numbers are provided', async () => {
       const testCases = [
         { input: '2.5 + 1.5', expected: 4 },
         { input: '10.5 - 2.3', expected: 8.2 },
