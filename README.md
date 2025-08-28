@@ -14,8 +14,14 @@ Um chatbot inteligente e modular construído com NestJS, React e Redis, com agen
 
 ```bash
 # 1. Clone o repositório
-git clone <repository-url>
+git clone https://github.com/oliveiratullio/modular-chatbot.git
 cd modular-chatbot
+```
+
+### Instalar as dependências:
+
+```bash
+pnpm install
 ```
 
 # 2. Configure as variáveis de ambiente
@@ -365,24 +371,4 @@ docker-compose logs frontend
 - [API Documentation](packages/backend/README.md)
 - [Frontend Documentation](packages/frontend/README.md)
 
-## 🤝 Contribuindo
 
-1. Fork o projeto
-2. Crie uma branch (`git checkout -b feature/nova-feature`)
-3. Commit suas mudanças (`git commit -am 'Adiciona nova feature'`)
-4. Push para a branch (`git push origin feature/nova-feature`)
-5. Abra um Pull Request
-
-## 📄 Licença
-
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
-
-## 🆘 Suporte
-
-- **Issues**: [GitHub Issues](https://github.com/seu-usuario/modular-chatbot/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/seu-usuario/modular-chatbot/discussions)
-- **Email**: seu-email@exemplo.com
-
----
-
-⭐ **Se este projeto te ajudou, considere dar uma estrela!**
