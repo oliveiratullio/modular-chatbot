@@ -18,8 +18,7 @@ git clone <repository-url>
 cd modular-chatbot
 
 # 2. Configure as variáveis de ambiente
-cp env.example .env
-# Edite .env com sua OPENAI_API_KEY
+Crie arquivos .env nas pastas packages/brackend e packagens/frontend, copie para eles as variáveis de ambiente presentes em packages/brackend/.env.example e packagens/frontend/.env.example, respectivamente.
 
 # 3. Rode o projeto
 docker-compose up -d
@@ -186,27 +185,9 @@ curl http://localhost:8080/health
 ### Rodar Todos os Testes
 
 ```bash
-# Com Docker
-docker-compose exec backend pnpm test
 
-# Local
 pnpm test
 
-# Teste rápido (verifica se tudo está funcionando)
-./test-quick.sh
-```
-
-### Testes Específicos
-
-```bash
-# Testes unitários
-pnpm test:unit
-
-# Testes e2e
-pnpm test:e2e
-
-# Cobertura
-pnpm test:cov
 ```
 
 ### Exemplo de Teste
@@ -240,51 +221,30 @@ describe("ChatController", () => {
 - **Backend API**: http://modular-chatbot.local/api
 - **Health Check**: http://modular-chatbot.local/api/health
 
-## 🎥 Demo
-
-![Chatbot Demo](demo.gif)
-
-_GIF mostrando a interface do chat em ação_
-
 ### 🌐 URLs de Deploy
 
 **Render.com (Gratuito):**
 
-- Frontend: https://modular-chatbot-frontend.onrender.com
-- Backend: https://modular-chatbot-backend.onrender.com
+- Frontend:
 - Health Check: https://modular-chatbot-backend.onrender.com/health
 
 **Vercel (Frontend):**
 
-- https://modular-chatbot.vercel.app
-
-**Railway:**
-
-- https://modular-chatbot.railway.app
-
-_Nota: Estas URLs são exemplos. Configure suas próprias URLs após o deploy._
+- https://modular-chatbot-frontend.vercel.app/
+  (Atenção: devido ao uso gratuito do Render, a primeira pergunta pode demorar mais do que o esperado para ser respondida.)
 
 ## ☁️ Deploy na Nuvem
 
-### Render.com (Gratuito)
+### Render.com (Backend)
 
 1. Conecte seu repositório GitHub
 2. Configure as variáveis de ambiente:
-   - `OPENAI_API_KEY`
-   - `REDIS_URL`
 3. Deploy automático a cada push
 
-### Railway
-
-1. Importe o projeto
-2. Configure as variáveis
-3. Deploy com um clique
-
-### Vercel (Frontend) + Railway (Backend)
+### Vercel (Frontend)
 
 1. Frontend no Vercel
-2. Backend no Railway
-3. Configure CORS adequadamente
+2. Configure CORS adequadamente
 
 ## 📁 Estrutura do Projeto
 

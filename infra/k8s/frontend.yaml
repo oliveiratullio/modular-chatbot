@@ -24,9 +24,12 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5173
-          envFrom:
-            - configMapRef:
-                name: app-config
+          env:
+            - name: VITE_API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: VITE_API_URL
           resources:
             requests:
               memory: "128Mi"

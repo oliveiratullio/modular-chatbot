@@ -24,11 +24,149 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
-          envFrom:
-            - configMapRef:
-                name: app-config
-            - secretRef:
-                name: app-secrets
+          env:
+        # ConfigMap variables
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: NODE_ENV
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: PORT
+        - name: APP_VERSION
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: APP_VERSION
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: LOG_LEVEL
+        - name: REDIS_NAMESPACE
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: REDIS_NAMESPACE
+        - name: REDIS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: REDIS_URL
+        - name: RATE_LIMIT_MAX
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: RATE_LIMIT_MAX
+        - name: RATE_LIMIT_WINDOW
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: RATE_LIMIT_WINDOW
+        - name: RATE_LIMIT_ALLOWLIST
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: RATE_LIMIT_ALLOWLIST
+        - name: MSG_MAX_LEN
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: MSG_MAX_LEN
+        - name: RAG_TOP_K
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: RAG_TOP_K
+        - name: RAG_ANSWER_MODEL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: RAG_ANSWER_MODEL
+        - name: RAG_CHUNK_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: RAG_CHUNK_SIZE
+        - name: RAG_CHUNK_OVERLAP
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: RAG_CHUNK_OVERLAP
+        - name: RAG_MAX_URLS
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: RAG_MAX_URLS
+        - name: RAG_EMBED_BATCH
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: RAG_EMBED_BATCH
+        - name: RAG_EMBED_RETRIES
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: RAG_EMBED_RETRIES
+        - name: RAG_EMBED_BACKOFF_MS
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: RAG_EMBED_BACKOFF_MS
+        - name: EMBEDDINGS_MODEL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: EMBEDDINGS_MODEL
+        - name: CHAT_HISTORY_TTL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: CHAT_HISTORY_TTL
+        - name: AGENT_LOG_TTL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: AGENT_LOG_TTL
+        - name: USER_CONV_INDEX_TTL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: USER_CONV_INDEX_TTL
+        # Secret variables
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: OPENAI_API_KEY
+        - name: OPENAI_BASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: OPENAI_BASE_URL
+        - name: DEEPSEEK_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: DEEPSEEK_API_KEY
+        - name: DEEPSEEK_API_BASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: DEEPSEEK_API_BASE_URL
+        - name: RAG_SEED_URLS
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: RAG_SEED_URLS
+        - name: RAG_SEED_SITEMAP
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: RAG_SEED_SITEMAP
           resources:
             requests:
               memory: "512Mi"
