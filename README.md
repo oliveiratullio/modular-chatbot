@@ -367,7 +367,6 @@ docker-compose logs frontend
 ## 📚 Documentação Adicional
 
 - [Docker Setup](DOCKER.md)
-- [Kubernetes Setup](infra/k8s/README.md)
 - [API Documentation](packages/backend/README.md)
 - [Frontend Documentation](packages/frontend/README.md)
 
