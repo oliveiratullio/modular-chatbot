@@ -16,17 +16,29 @@ Um chatbot inteligente e modular construído com NestJS, React e Redis, com agen
 # 1. Clone o repositório
 git clone <repository-url>
 cd modular-chatbot
+```
 
 # 2. Configure as variáveis de ambiente
+
 Crie arquivos .env nas pastas packages/brackend e packagens/frontend, copie para eles as variáveis de ambiente presentes em packages/brackend/.env.example e packagens/frontend/.env.example, respectivamente.
 
+```bash
 # 3. Rode o projeto
 docker-compose up -d
+```
 
 # 4. Acesse a aplicação
+
 # Frontend: http://localhost:5173
+
 # API: http://localhost:8080
-```
+
+````
+
+### Rodar Localmente
+```bash
+pnpm dev
+````
 
 ### Rodar com Kubernetes
 
@@ -213,7 +225,7 @@ describe("ChatController", () => {
 - **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:8080
 - **Health Check**: http://localhost:8080/health
-- **Redis**: localhost:6379
+- **Redis**: através da variável de ambiente REDIS_URL
 
 ### Kubernetes
 
@@ -222,11 +234,6 @@ describe("ChatController", () => {
 - **Health Check**: http://modular-chatbot.local/api/health
 
 ### 🌐 URLs de Deploy
-
-**Render.com (Gratuito):**
-
-- Frontend:
-- Health Check: https://modular-chatbot-backend.onrender.com/health
 
 **Vercel (Frontend):**
 
