@@ -21,16 +21,26 @@ export function ChatArea({
 }: ChatAreaProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
+  // Scroll automático para mostrar mensagem mais recente
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      const scrollElement = scrollAreaRef.current.querySelector(
-        "[data-radix-scroll-area-viewport]",
-      );
-      if (scrollElement) {
-        scrollElement.scrollTop = scrollElement.scrollHeight;
+    const scrollToBottom = () => {
+      if (scrollAreaRef.current) {
+        const scrollElement = scrollAreaRef.current.querySelector(
+          "[data-radix-scroll-area-viewport]",
+        );
+        if (scrollElement) {
+          scrollElement.scrollTo({
+            top: scrollElement.scrollHeight,
+            behavior: "smooth",
+          });
+        }
       }
-    }
-  }, [conversation?.messages]);
+    };
+
+    // Timeout para garantir que o DOM foi atualizado completamente
+    const timeoutId = setTimeout(scrollToBottom, 100);
+    return () => clearTimeout(timeoutId);
+  }, [conversation?.messages, isLoading]);
 
   if (!conversation) {
     return (

@@ -9,10 +9,12 @@ import { logger } from '../common/logging/logger.service.js';
 import { OpenAIEmbeddingsAdapter } from './adapters/embeddings.adapter.js';
 import { RedisVectorStoreAdapter } from './adapters/vectorstore.adapter.js';
 import CryptoJS from 'crypto-js';
+import OpenAI from 'openai';
 
 const TOP_K = Number(process.env.RAG_TOP_K ?? 5);
+const ANSWER_MODEL = process.env.RAG_ANSWER_MODEL ?? 'gpt-4o-mini';
 
-// contrato mínimo para o cliente de cache (evita usar `any`)
+// cliente mínimo p/ cache
 type CacheClient = {
   get(key: string): Promise<string | null>;
   setEx(key: string, ttlSeconds: number, value: string): Promise<void>;
@@ -23,23 +25,16 @@ export class KnowledgeAgent implements IAgent {
   name = 'KnowledgeAgent' as const;
 
   private emb = new OpenAIEmbeddingsAdapter();
-
-  // Lazy init do VectorStore
   private vs?: RedisVectorStoreAdapter;
   private vsReady = false;
   private vsInitPromise?: Promise<void>;
+  private llm = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
   async canHandle(_message: string, _ctx: AgentContext): Promise<boolean> {
-    // Router decide; este agente sempre pode lidar
     return true;
   }
 
-  private normalizeQuery(q: string) {
-    return q.trim().toLowerCase().replace(/\s+/g, ' ');
-  }
-
   private normalizeForSearch(q: string) {
-    // remove aspas tipográficas, pontuação forte e acentos
     const plain = q
       .replace(/[“”„‟]|[‘’‚‛]/g, '"')
       .replace(/[¿¡]/g, ' ')
@@ -48,7 +43,7 @@ export class KnowledgeAgent implements IAgent {
       .trim();
     return plain
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') // diacríticos
+      .replace(/[\u0300-\u036f]/g, '')
       .replace(/\s+/g, ' ')
       .trim();
   }
@@ -65,10 +60,9 @@ export class KnowledgeAgent implements IAgent {
     const norm = this.normalizeForSearch(q);
     const hash = CryptoJS.SHA1(norm).toString();
     const ns = process.env.REDIS_NAMESPACE ?? 'rag';
-    return `${ns}:cache:q:${hash}`;
+    return `${ns}:cache:v2:q:${hash}`; // v2 para invalidar cache antigo
   }
 
-  /** Inicializa o VectorStore apenas quando necessário; tolera ausência de REDIS_URL */
   private async ensureVectorStore(): Promise<void> {
     if (this.vsReady) return;
     if (this.vsInitPromise) return this.vsInitPromise;
@@ -84,7 +78,6 @@ export class KnowledgeAgent implements IAgent {
         this.vsReady = false;
         return;
       }
-
       try {
         this.vs = new RedisVectorStoreAdapter(this.emb);
         await this.vs.ensureIndex();
@@ -108,9 +101,7 @@ export class KnowledgeAgent implements IAgent {
     return this.vsInitPromise;
   }
 
-  /** Tenta obter um cliente de cache de dentro do VectorStore, de forma segura (sem `any`). */
   private getCacheClient(): CacheClient | null {
-    // Fazemos um “type narrowing” seguro a partir de `unknown`
     const maybe = this.vs as unknown as { client?: unknown } | undefined;
     const cli = maybe?.client as
       | (CacheClient & Record<string, unknown>)
@@ -126,11 +117,83 @@ export class KnowledgeAgent implements IAgent {
     return null;
   }
 
-  private buildAnswer(answer: string, sources: string[]) {
-    const tail = sources.length
-      ? `\n\nFontes:\n${sources.map((u) => `- ${u}`).join('\n')}`
-      : '';
-    return `${answer}${tail}`;
+  private stripNoiseForPrompt(text: string): string {
+    // o htmlToCleanText já removeu quase tudo; aqui só uma passada final
+    let t = text.replace(/\s{2,}/g, ' ').trim();
+    // tira rodapés/menus que tenham escapado
+    const extra: RegExp[] = [
+      /Artigos relacionados.*$/gim,
+      /Respondeu à sua pergunta\?.*$/gim,
+    ];
+    for (const re of extra) t = t.replace(re, ' ');
+    return t.replace(/\s+/g, ' ').trim();
+  }
+
+  private safeTruncate(text: string, max = 9000): string {
+    if (text.length <= max) return text;
+    const slice = text.slice(0, max);
+    const lastSpace = slice.lastIndexOf(' ');
+    return (lastSpace > 0 ? slice.slice(0, lastSpace) : slice).trim() + '…';
+  }
+
+  private buildAnswer(answer: string, _sources: string[]) {
+    // Não anexar fontes - elas já vão no campo source_agent_response separado
+    return answer;
+  }
+
+  private async synthesizeAnswer(
+    question: string,
+    sources: Array<{ url: string; text: string }>,
+  ): Promise<string> {
+    const contextBlocks = sources
+      .map(
+        (s, i) =>
+          `### FONTE ${i + 1}\n${this.safeTruncate(this.stripNoiseForPrompt(s.text), 9000)}`,
+      )
+      .join('\n\n');
+
+    // prompt com orientação para respostas diretas ("Sim/Não" quando aplicável)
+    const prompt = [
+      'Você é um assistente de suporte da InfinitePay.',
+      'Responda SOMENTE com base nas fontes fornecidas abaixo.',
+      'Se a pergunta comportar resposta "sim" ou "não", COMEÇE com "Sim," ou "Não," e explique em 1–2 frases.',
+      'Se não houver informação suficiente, diga "Não tenho essa informação nas fontes fornecidas."',
+      'Seja conciso, direto e evite copiar texto de UI/menus. Use bullet points apenas quando necessário.',
+      'IMPORTANTE: NÃO mencione URLs, links, fontes, "Fontes:" ou qualquer referência a páginas na sua resposta.',
+      'Responda APENAS o conteúdo factual sem mencionar de onde veio a informação.',
+      '',
+      contextBlocks,
+      '',
+      '### PERGUNTA',
+      question,
+      '',
+      '### RESPOSTA',
+    ].join('\n');
+
+    const completion = await this.llm.chat.completions.create({
+      model: ANSWER_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: 'Responda de forma factual, direta e concisa. Não invente.',
+        },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.2,
+      max_tokens: 500,
+    });
+
+    const txt = completion.choices[0]?.message?.content?.trim() ?? '';
+
+    // Remove qualquer menção a fontes que possa ter escapado
+    const cleanedTxt = txt
+      .replace(/Fontes?:\s*-?\s*https?:\/\/[^\s\n]+/gi, '')
+      .replace(/https?:\/\/[^\s\n]+/g, '')
+      .replace(/Fonte[s]?\s*[:.-]\s*/gi, '')
+      .replace(/\n\s*-\s*https?:\/\/[^\s\n]+/g, '')
+      .trim();
+
+    return cleanedTxt || 'Não tenho essa informação nas fontes fornecidas.';
   }
 
   async handle(
@@ -139,10 +202,9 @@ export class KnowledgeAgent implements IAgent {
     trail: AgentStep[],
   ): Promise<ChatResponseDTO> {
     const t0 = performance.now();
-
     await this.ensureVectorStore();
 
-    // Cache curto via Redis (se disponível)
+    // cache
     let cached: { answer: string; sources: string[] } | null = null;
     const cacheClient = this.getCacheClient();
     if (this.vsReady && cacheClient) {
@@ -151,12 +213,10 @@ export class KnowledgeAgent implements IAgent {
         if (raw)
           cached = JSON.parse(raw) as { answer: string; sources: string[] };
       } catch {
-        // ignora cache errors
+        // Ignorar erros silenciosamente
       }
     }
-
-    // Só retorna de cache se houver fontes; se não, tenta buscar novamente
-    if (cached && cached.sources && cached.sources.length > 0) {
+    if (cached?.sources?.length) {
       const resp = this.buildAnswer(cached.answer, cached.sources);
       logger.info({
         level: 'INFO',
@@ -171,26 +231,30 @@ export class KnowledgeAgent implements IAgent {
       };
     }
 
+    // recall
     let chunks: Array<{
       text: string;
       metadata: Record<string, unknown>;
       score?: number;
     }> = [];
+    let usedQuery = '(none)';
     let searchMs = 0;
 
     if (this.vsReady && this.vs) {
       const searchT0 = performance.now();
       try {
         const q1 = this.normalizeForSearch(message);
+        usedQuery = q1;
         chunks = await this.vs.similaritySearch(q1, TOP_K);
+
         if (chunks.length === 0) {
-          // fallback: consulta reduzida a termos principais
           const q2 = this.tokenizeCore(message)
             .split(' ')
             .filter((t) => t.length > 2)
-            .slice(0, 8)
+            .slice(0, 10)
             .join(' ');
           if (q2) {
+            usedQuery = q2;
             chunks = await this.vs.similaritySearch(q2, TOP_K);
           }
         }
@@ -206,22 +270,8 @@ export class KnowledgeAgent implements IAgent {
       searchMs = performance.now() - searchT0;
     }
 
-    // log de diagnóstico da busca
-    try {
-      const topScores = (chunks || [])
-        .map((c) => Number((c.score ?? 0).toFixed?.(4) ?? c.score))
-        .slice(0, 5);
-      logger.info({
-        level: 'INFO',
-        agent: 'KnowledgeAgent',
-        search_results: chunks.length,
-        top_scores: topScores,
-      });
-    } catch {
-      // ignore
-    }
-
-    const sources = Array.from(
+    // URLs únicas
+    const urls = Array.from(
       new Set(
         chunks
           .map((c) => String((c.metadata?.url ?? '') as string).trim())
@@ -229,21 +279,76 @@ export class KnowledgeAgent implements IAgent {
       ),
     );
 
-    // Heurística simples de “resumo”
-    let answer: string;
-    if (chunks.length === 0) {
-      answer =
-        'Não tenho certeza com base na base atual. ' +
-        (this.vsReady
-          ? ''
-          : 'O módulo de conhecimento está indisponível no momento.');
-    } else {
-      const summary = chunks
-        .map((c) =>
-          (c.text || '').split('\n').slice(0, 3).join(' ').slice(0, 300),
-        )
-        .join('\n- ');
-      answer = `- ${summary}`;
+    // síntese
+    let finalAnswer = '';
+    let answerSources: string[] = [];
+
+    if (this.vsReady && this.vs && urls.length > 0) {
+      const topUrls = urls.slice(0, 3);
+      const fullTexts: Array<{ url: string; text: string }> = [];
+
+      for (const url of topUrls) {
+        const raw = await this.vs.loadRaw(url);
+        if (raw && raw.trim().length > 0) {
+          fullTexts.push({ url, text: raw });
+        }
+      }
+
+      if (fullTexts.length > 0) {
+        try {
+          finalAnswer = await this.synthesizeAnswer(message, fullTexts);
+          answerSources = topUrls;
+        } catch (e) {
+          logger.error({
+            level: 'ERROR',
+            agent: 'KnowledgeAgent',
+            message: 'LLM synthesis failed',
+            error: (e as Error).message,
+          });
+        }
+      }
+    }
+
+    // fallback simples se síntese falhar ou recall vazio
+    if (!finalAnswer) {
+      if (urls.length === 0) {
+        finalAnswer =
+          'Não tenho essa informação nas fontes fornecidas. ' +
+          (this.vsReady
+            ? ''
+            : 'O módulo de conhecimento está indisponível no momento.');
+      } else {
+        const summary = chunks
+          .map((c) => {
+            const raw = String(c.text || '');
+            const excerpt = raw.replace(/\s+/g, ' ').slice(0, 300).trim();
+            return `- ${excerpt}`;
+          })
+          .join('\n');
+        finalAnswer = summary;
+        answerSources = urls.slice(0, 3);
+      }
+    }
+
+    // logs
+    try {
+      const topScores = (chunks || [])
+        .map((c) => {
+          const n = typeof c.score === 'number' ? c.score : Number(c.score);
+          return Number.isFinite(n) ? Number(n.toFixed(4)) : n;
+        })
+        .slice(0, 5);
+
+      logger.info({
+        level: 'INFO',
+        agent: 'KnowledgeAgent',
+        message: 'search_summary',
+        search_results: chunks.length,
+        used_query: usedQuery,
+        top_scores: topScores,
+      });
+    } catch {
+      // Ignorar erros silenciosamente
     }
 
     const fullMs = performance.now() - t0;
@@ -252,28 +357,30 @@ export class KnowledgeAgent implements IAgent {
       agent: 'KnowledgeAgent',
       execution_time_ms: fullMs,
       embedding_lookup_ms: searchMs,
-      sources,
+      sources: answerSources,
       conversation_id: ctx.conversation_id,
       user_id: ctx.user_id,
     });
 
-    // salva cache (se possível) apenas quando houver fontes
-    if (this.vsReady && cacheClient && sources.length > 0) {
+    const response = this.buildAnswer(finalAnswer, answerSources);
+
+    // cache curto quando temos fontes
+    const cache = this.getCacheClient();
+    if (this.vsReady && cache && answerSources.length > 0) {
       try {
-        await cacheClient.setEx(
+        await cache.setEx(
           this.cacheKey(message),
           60,
-          JSON.stringify({ answer, sources }),
+          JSON.stringify({ answer: finalAnswer, sources: answerSources }),
         );
       } catch {
-        // ignore
+        // Ignorar erros silenciosamente
       }
     }
 
-    const response = this.buildAnswer(answer, sources);
     return {
       response,
-      source_agent_response: sources.join(' | '),
+      source_agent_response: answerSources.join(' | '),
       agent_workflow: [...trail, { agent: 'KnowledgeAgent' }],
     };
   }
