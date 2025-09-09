@@ -27,6 +27,7 @@ pnpm install
 # 2. Configure as variáveis de ambiente
 
 Crie arquivos .env nas pastas packages/brackend e packagens/frontend, copie para eles as variáveis de ambiente presentes em packages/brackend/.env.example e packagens/frontend/.env.example, respectivamente.
+Obs: é necessário que você adicione sua própria OPEN AI KEY em OPENAI_API_KEY=
 
 ```bash
 # 3. Rode o projeto
