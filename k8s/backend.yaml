@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: modular-chatbot-backend
+  namespace: modular-chatbot
+  labels:
+    app: modular-chatbot-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: modular-chatbot-backend
+  template:
+    metadata:
+      labels:
+        app: modular-chatbot-backend
+    spec:
+      containers:
+        - name: backend
+          image: modular-chatbot-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: modular-chatbot-config
+                  key: NODE_ENV
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: modular-chatbot-config
+                  key: PORT
+            - name: REDIS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: modular-chatbot-config
+                  key: REDIS_URL
+            - name: REDIS_NAMESPACE
+              valueFrom:
+                configMapKeyRef:
+                  name: modular-chatbot-config
+                  key: REDIS_NAMESPACE
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: modular-chatbot-secrets
+                  key: OPENAI_API_KEY
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: modular-chatbot-backend
+  namespace: modular-chatbot
+  labels:
+    app: modular-chatbot-backend
+spec:
+  selector:
+    app: modular-chatbot-backend
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP

@@ -1,0 +1,17 @@
+apiVersion: v2
+name: modular-chatbot
+description: A Helm chart for Modular Chatbot
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - chatbot
+  - ai
+  - nestjs
+  - react
+home: https://github.com/oliveiratullio/modular-chatbot
+sources:
+  - https://github.com/oliveiratullio/modular-chatbot
+maintainers:
+  - name: Modular Chatbot Team
+    email: team@modular-chatbot.com

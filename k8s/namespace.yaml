@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: modular-chatbot
+  labels:
+    name: modular-chatbot
+    app: modular-chatbot

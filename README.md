@@ -48,16 +48,45 @@ pnpm dev
 
 ### Rodar com Kubernetes
 
+#### Opção 1: Deploy Completo (Recomendado)
+
+```bash
+# 1. Configure os secrets
+# Edite k8s/secret.yaml com suas chaves de API
+
+# 2. Construir imagens Docker
+.\k8s\build-images.ps1
+
+# 3. Deploy no Kubernetes
+.\k8s\deploy.ps1
+```
+
+#### Opção 2: Deploy Manual
+
 ```bash
 # 1. Configure o secret com sua OpenAI API Key
-cd infra/k8s
-# Edite secret.yaml com sua chave
+# Edite k8s/secret.yaml com sua chave
 
 # 2. Deploy no Kubernetes
-kubectl apply -f infra/k8s/
+kubectl apply -f k8s/
 
 # 3. Verifique o status
-kubectl get pods,svc,ing -n app
+kubectl get pods,svc,ing -n modular-chatbot
+```
+
+#### Para Desenvolvimento Local com Minikube
+
+```bash
+# 1. Configurar Minikube
+.\k8s\minikube-setup.ps1
+
+# 2. Seguir os passos do deploy completo
+```
+
+#### Para Remover a Aplicação
+
+```bash
+.\k8s\undeploy.ps1
 ```
 
 ## 🏗️ Arquitetura
@@ -369,5 +398,3 @@ docker-compose logs frontend
 - [Docker Setup](DOCKER.md)
 - [API Documentation](packages/backend/README.md)
 - [Frontend Documentation](packages/frontend/README.md)
-
-

@@ -10,6 +10,7 @@ import { MathAgent } from '../agents/math.agent.js';
 import { KnowledgeAgent } from '../agents/knowledge.agent.js';
 import { ChatHistoryRepository } from '../repositories/chat-history.repo.js';
 import { AgentLogsRepository } from '../repositories/agent-logs.repo.js';
+import { HistoryService } from '../services/history.service.js';
 import { logger } from '../common/logging/logger.service.js';
 import { basicPromptInjectionGuard } from '../utils/sanitize.js';
 
@@ -37,6 +38,7 @@ export class ChatService {
     private readonly knowledge: KnowledgeAgent,
     private readonly history: ChatHistoryRepository,
     private readonly agentLogs: AgentLogsRepository,
+    private readonly historyService: HistoryService,
   ) {}
 
   async handle(req: {
@@ -66,6 +68,29 @@ export class ChatService {
         level: 'WARN',
         scope: 'ChatService',
         message: 'ChatHistoryRepository not available (skip persist user msg)',
+      });
+    }
+
+    // 2.1) salva pergunta no histórico de perguntas
+    if (this.historyService) {
+      logger.info({
+        level: 'INFO',
+        scope: 'ChatService',
+        message: 'Salvando pergunta no histórico',
+        user_id: req.user_id,
+        conversation_id: req.conversation_id,
+        question: clean,
+      });
+      await this.historyService.saveQuestion(
+        clean,
+        req.user_id,
+        req.conversation_id,
+      );
+    } else {
+      logger.warn({
+        level: 'WARN',
+        scope: 'ChatService',
+        message: 'HistoryService not available (skip save question)',
       });
     }
 

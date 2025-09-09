@@ -2,7 +2,7 @@ import { Message as MessageType } from "../types/api";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Card, CardContent } from "./ui/card";
-import { Clock, Link as LinkIcon, Brain, Calculator, Route } from "lucide-react";
+import { Clock, Link as LinkIcon, Brain, Calculator, Route, History } from "lucide-react";
 
 interface MessageProps {
   message: MessageType;
@@ -10,13 +10,44 @@ interface MessageProps {
 }
 
 export function Message({ message, isMobile = false }: MessageProps) {
-  const { content, isUser, agentWorkflow, sourceAgentResponse, timestamp } = message;
+  const {
+    content,
+    isUser,
+    agentWorkflow,
+    sourceAgentResponse,
+    timestamp,
+    isFromHistory,
+    originalConversationId,
+    originalConversationTitle,
+  } = message;
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString("pt-BR", {
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const formatDateTime = (date: Date) => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+      return `Hoje às ${formatTime(date)}`;
+    } else if (diffDays === 1) {
+      return `Ontem às ${formatTime(date)}`;
+    } else if (diffDays < 7) {
+      return `${diffDays} dias atrás às ${formatTime(date)}`;
+    } else {
+      return date.toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
   };
 
   const getAgentIcon = (agent: string) => {
@@ -54,9 +85,27 @@ export function Message({ message, isMobile = false }: MessageProps) {
           className={`${isMobile ? "max-w-[85%]" : "max-w-[70%]"} bg-primary text-primary-foreground rounded-lg px-4 py-2`}
         >
           <p className="break-words">{content}</p>
-          <span className={`opacity-70 mt-1 block ${isMobile ? "text-xs" : "text-xs"}`}>
-            {formatTime(timestamp)}
-          </span>
+          <div className={`opacity-70 mt-1 block ${isMobile ? "text-xs" : "text-xs"}`}>
+            {isFromHistory ? (
+              <div className="space-y-1">
+                <div className="flex items-center gap-1">
+                  <History className="w-3 h-3" />
+                  <span>Do histórico</span>
+                </div>
+                <div className="text-xs opacity-80">{formatDateTime(timestamp)}</div>
+                {originalConversationTitle && (
+                  <div className="text-xs opacity-60">{originalConversationTitle}</div>
+                )}
+                {originalConversationId && (
+                  <div className="text-xs opacity-50">
+                    Conv: {originalConversationId.slice(0, 8)}...
+                  </div>
+                )}
+              </div>
+            ) : (
+              <span>{formatTime(timestamp)}</span>
+            )}
+          </div>
         </div>
       </div>
     );

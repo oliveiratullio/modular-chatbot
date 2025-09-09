@@ -23,6 +23,9 @@ export type Message = {
   timestamp: Date;
   agentWorkflow?: AgentStep[];
   sourceAgentResponse?: string;
+  isFromHistory?: boolean;
+  originalConversationId?: string;
+  originalConversationTitle?: string;
 };
 
 export type Conversation = {
@@ -30,4 +33,17 @@ export type Conversation = {
   title: string;
   lastMessageAt: Date;
   messages: Message[];
+  user_id?: string;
+};
+
+export type HistoryQuestion = {
+  id: string;
+  question: string;
+  timestamp: string;
+  conversation_id: string;
+  user_id: string;
+};
+
+export type HistoryResponse = {
+  questions: HistoryQuestion[];
 };
