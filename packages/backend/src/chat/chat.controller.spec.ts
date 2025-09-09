@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { ChatController } from './chat.controller.js';
 import { ChatService } from './chat.service.js';
+import { HistoryService } from '../services/history.service.js';
 import type { ChatResponseDTO } from '../agents/contracts.js';
 
 describe('ChatController', () => {
@@ -15,8 +16,15 @@ describe('ChatController', () => {
   };
 
   beforeEach(async () => {
-    const mockService = {
+    const mockChatServiceValue = {
       handle: jest.fn().mockResolvedValue(mockResponse),
+    };
+
+    const mockHistoryServiceValue = {
+      saveQuestion: jest.fn().mockResolvedValue(undefined),
+      getUserHistory: jest.fn().mockResolvedValue([]),
+      removeQuestion: jest.fn().mockResolvedValue(true),
+      clearUserHistory: jest.fn().mockResolvedValue(true),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -24,7 +32,11 @@ describe('ChatController', () => {
       providers: [
         {
           provide: ChatService,
-          useValue: mockService,
+          useValue: mockChatServiceValue,
+        },
+        {
+          provide: HistoryService,
+          useValue: mockHistoryServiceValue,
         },
       ],
     }).compile();
