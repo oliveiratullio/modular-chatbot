@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import { beforeEach } from "vitest";
 
 // Mock do ResizeObserver para componentes Radix UI
 global.ResizeObserver = class ResizeObserver {
@@ -6,6 +7,12 @@ global.ResizeObserver = class ResizeObserver {
   unobserve() {}
   disconnect() {}
 };
+
+// Limpa localStorage antes de cada teste
+beforeEach(() => {
+  localStorage.clear();
+  sessionStorage.clear();
+});
 
 // Mock do matchMedia
 Object.defineProperty(window, "matchMedia", {
